@@ -40,10 +40,38 @@
 
 ---
 
+## [2025-01-13 19:35] - US-002: 创建Service Worker基础框架
+**Implemented:**
+- Created /public/sw.js with complete Service Worker implementation
+- Implemented install event (caches static assets)
+- Implemented fetch event (network-first strategy with cache fallback)
+- Implemented activate event (cleans up old caches)
+- Added SW registration in src/index.tsx with update mechanism
+- Build test passed, SW copied to dist
+
+**Files Changed:**
+- /public/sw.js - New file with complete SW implementation
+- src/index.tsx - Added registerServiceWorker() function and update handling
+
+**Learnings:**
+- Network-first strategy for HTML/API ensures fresh content
+- Cache-first for static assets (CSS/JS/images) improves performance
+- SW update mechanism: updatefound → installed → controllerchange
+- skipWaiting() activates new SW immediately without waiting for all tabs to close
+- Build assets have hash in filename (index-DiEeViGh.js) - need to update PRECACHE_URLS after each build
+
+**Gotchas:**
+- Service Worker only works on HTTPS or localhost
+- sw.js must be at root level to control entire app
+- Need to update PRECACHE_URLS after each build (hardcoded currently)
+- Consider using vite-plugin-pwa (US-003) to automate cache management
+
+---
+
 ## Story Completion Status
 
 - [x] US-001: 添加PWA Manifest配置
-- [ ] US-002: 创建Service Worker基础框架
+- [x] US-002: 创建Service Worker基础框架
 - [ ] US-003: 配置Vite PWA插件
 - [ ] US-004: 实现离线检测和UI提示
 - [ ] US-005: 设计IndexedDB数据模型
