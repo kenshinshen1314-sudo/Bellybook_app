@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+/* Vibe Design System - OKLCH Color Space */
+:root {
+  --radius: 20px;
+
+  /* Light Mode Colors */
+  --background: oklch(0.8798 0.0534 91.7893);
+  --foreground: oklch(0.4265 0.0310 59.2153);
+
+  --primary: oklch(0.6657 0.1050 118.9078);
+  --primary-foreground: oklch(0.9882 0.0069 88.6415);
+
+  --secondary: oklch(0.8532 0.0631 91.1493);
+  --secondary-foreground: oklch(0.4265 0.0310 59.2153);
+
+  --accent: oklch(0.8361 0.0713 90.3269);
+  --accent-foreground: oklch(0.4265 0.0310 59.2153);
+
+  --muted: oklch(0.8532 0.0631 91.1493);
+  --muted-foreground: oklch(0.5765 0.0310 59.2153);
+
+  --destructive: oklch(0.7136 0.0981 29.9827);
+  --destructive-foreground: oklch(0.9882 0.0069 88.6415);
+
+  --border: oklch(0.6918 0.0440 59.8448);
+  --input: oklch(0.6918 0.0440 59.8448);
+  --ring: oklch(0.7350 0.0564 130.8494);
+
+  /* Card Colors */
+  --card: oklch(0.9882 0.0069 88.6415);
+  --card-foreground: oklch(0.4265 0.0310 59.2153);
+
+  /* Population Colors */
+  --popover: oklch(0.9882 0.0069 88.6415);
+  --popover-foreground: oklch(0.4265 0.0310 59.2153);
+}
+
+.dark {
+  /* Dark Mode Colors */
+  --background: oklch(0.3303 0.0214 88.0737);
+  --foreground: oklch(0.9217 0.0235 82.1191);
+
+  --primary: oklch(0.6762 0.0567 132.4479);
+  --primary-foreground: oklch(0.9882 0.0069 88.6415);
+
+  --secondary: oklch(0.4448 0.0239 84.5498);
+  --secondary-foreground: oklch(0.9217 0.0235 82.1191);
+
+  --accent: oklch(0.6540 0.0723 90.7629);
+  --accent-foreground: oklch(0.9217 0.0235 82.1191);
+
+  --muted: oklch(0.4448 0.0239 84.5498);
+  --muted-foreground: oklch(0.6765 0.0310 59.2153);
+
+  --destructive: oklch(0.6136 0.1481 29.9827);
+  --destructive-foreground: oklch(0.9882 0.0069 88.6415);
+
+  --border: oklch(0.4448 0.0239 84.5498);
+  --input: oklch(0.4448 0.0239 84.5498);
+  --ring: oklch(0.6762 0.0567 132.4479);
+
+  /* Card Colors */
+  --card: oklch(0.3803 0.0214 88.0737);
+  --card-foreground: oklch(0.9217 0.0235 82.1191);
+
+  /* Population Colors */
+  --popover: oklch(0.3803 0.0214 88.0737);
+  --popover-foreground: oklch(0.9217 0.0235 82.1191);
+}
+
+/* Border Radius System */
+:root {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+}
+
+/* Base Styles */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  background-color: var(--background);
+  color: var(--foreground);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+/* Safe Area Support */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Hide scrollbar for clean mobile look */
+::-webkit-scrollbar {
+  width: 0px;
+  background: transparent;
+}
+
+/* Custom scrollbar for desktop */
+@media (min-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--muted-foreground);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--foreground);
+  }
+}

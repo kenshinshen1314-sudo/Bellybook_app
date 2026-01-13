@@ -1,0 +1,21 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" rx="115" fill="#10B981"/>
+
+  <!-- Bowl shape -->
+  <path d="M128 200 C128 200 140 360 256 360 C372 360 384 200 384 200 L128 200Z" fill="white" fill-opacity="0.9"/>
+
+  <!-- Steam lines -->
+  <path d="M200 160 Q210 140 200 120" stroke="white" stroke-width="12" stroke-linecap="round" fill="none"/>
+  <path d="M256 150 Q266 130 256 100" stroke="white" stroke-width="12" stroke-linecap="round" fill="none"/>
+  <path d="M312 160 Q322 140 312 120" stroke="white" stroke-width="12" stroke-linecap="round" fill="none"/>
+
+  <!-- Food items in bowl -->
+  <circle cx="200" cy="240" r="20" fill="#F59E0B"/>
+  <circle cx="256" cy="260" r="25" fill="#EF4444"/>
+  <circle cx="310" cy="240" r="18" fill="#10B981"/>
+  <path d="M180 280 Q200 300 256 290 Q310 280 330 280" stroke="#8B5CF6" stroke-width="8" stroke-linecap="round" fill="none"/>
+
+  <!-- Text -->
+  <text x="256" y="450" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="white">胃之书</text>
+</svg>

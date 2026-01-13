@@ -1,0 +1,411 @@
+{
+  "project": "胃之书 (Bellybook) App",
+  "featureName": "bellybook-pwa-mobile-optimization",
+  "branchName": "ralph/bellybook-pwa-mobile-optimization",
+  "description": "在现有代码基础上逐步优化移动端适配，实现PWA离线功能，使用IndexedDB实现数据持久化，支持主流移动浏览器，重构业务逻辑",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "添加PWA Manifest配置",
+      "description": "作为开发者，我需要配置PWA manifest文件，使App可以被添加到主屏幕",
+      "acceptanceCriteria": [
+        "创建 /public/manifest.json 文件",
+        "配置应用名称、图标、主题色",
+        "在 index.html 中添加manifest链接",
+        "配置standalone显示模式",
+        "使用Lighthouse验证PWA安装性",
+        "在移动浏览器中测试添加到主屏幕功能"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "创建manifest.json配置standalone模式，添加PWA meta标签到index.html，SVG图标作为占位符"
+    },
+    {
+      "id": "US-002",
+      "title": "创建Service Worker基础框架",
+      "description": "作为开发者，我需要创建Service Worker来实现离线缓存和资源管理",
+      "acceptanceCriteria": [
+        "创建 /public/sw.js 文件",
+        "实现install事件（缓存核心资源）",
+        "实现fetch事件（网络优先策略）",
+        "在 index.tsx 中注册Service Worker",
+        "实现Service Worker更新机制",
+        "在DevTools Application中验证SW注册"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-003",
+      "title": "配置Vite PWA插件",
+      "description": "作为开发者，我需要配置vite-plugin-pwa来自动生成和管理Service Worker",
+      "acceptanceCriteria": [
+        "安装 vite-plugin-pwa 依赖",
+        "在 vite.config.ts 中配置PWA插件",
+        "配置workbox缓存策略",
+        "配置图标生成（多种尺寸）",
+        "测试构建后的PWA功能",
+        "验证更新提示机制"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-004",
+      "title": "实现离线检测和UI提示",
+      "description": "作为用户，我需要知道当前网络状态，以便了解数据是否已同步",
+      "acceptanceCriteria": [
+        "创建 useOnline hook检测网络状态",
+        "在顶部显示离线状态提示条",
+        "离线时禁用需要网络的操作（拍照分析）",
+        "恢复网络时自动同步待上传数据",
+        "测试离线/在线切换场景"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "设计IndexedDB数据模型",
+      "description": "作为开发者，我需要设计适合食物记录的数据库schema",
+      "acceptanceCriteria": [
+        "设计stores: meals, users, syncQueue",
+        "定义indexes: meals.date, meals.userId, syncQueue.createdAt",
+        "创建类型定义文件 src/db/schema.ts",
+        "定义数据迁移策略",
+        "通过TypeScript类型检查"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "创建IndexedDB封装层",
+      "description": "作为开发者，我需要创建一个易用的IndexedDB操作封装",
+      "acceptanceCriteria": [
+        "安装 idb 依赖",
+        "创建 src/db/index.ts 初始化DB",
+        "实现 db.meals.getAll(), db.meals.add(), db.meals.update()",
+        "实现 db.syncQueue.add(), db.syncQueue.process()",
+        "添加错误处理和重试逻辑",
+        "编写单元测试验证CRUD操作"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-007",
+      "title": "实现用户数据存储",
+      "description": "作为用户，我的个人资料和设置需要本地持久化保存",
+      "acceptanceCriteria": [
+        "扩展 users store包含profile和settings",
+        "创建 useProfile hook读取/更新用户数据",
+        "实现 saveProfile() 和 loadProfile() 函数",
+        "主题设置（dark/light）持久化",
+        "语言设置持久化",
+        "刷新页面后设置保持",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-008",
+      "title": "实现meal记录存储",
+      "description": "作为用户，我拍摄的食物记录需要保存到本地数据库",
+      "acceptanceCriteria": [
+        "创建 Meal 类型（包含图片、分析结果、营养信息）",
+        "实现 saveMeal(meal) 函数保存到IndexedDB",
+        "实现 getMealsByDateRange(startDate, endDate) 查询",
+        "图片作为Blob存储（支持离线查看）",
+        "保存成功后显示Toast提示",
+        "验证数据在关闭/重开App后仍然存在",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-009",
+      "title": "创建状态管理Context",
+      "description": "作为开发者，我需要创建统一的状态管理来管理App数据",
+      "acceptanceCriteria": [
+        "创建 AppContext 包含user, meals, settings状态",
+        "实现 useApp hook访问全局状态",
+        "实现actions: addMeal, updateMeal, deleteMeal",
+        "实现selectors: getDailyStats, getWeeklyStats",
+        "添加状态持久化逻辑",
+        "使用React DevTools验证状态更新",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-010",
+      "title": "重构拍照分析流程",
+      "description": "作为用户，拍照后应该看到加载状态，然后显示分析结果，最后自动保存",
+      "acceptanceCriteria": [
+        "创建 useAnalyzeMeal hook封装分析逻辑",
+        "显示加载中的Skeleton/Spinner组件",
+        "分析结果使用新的Card组件展示",
+        "自动保存分析结果到IndexedDB",
+        "保存成功后导航到历史记录Tab",
+        "错误处理：显示友好的错误信息",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "实现历史记录列表",
+      "description": "作为用户，我需要查看我所有的食物记录，按时间倒序排列",
+      "acceptanceCriteria": [
+        "创建 MealList 组件",
+        "从IndexedDB加载meal记录",
+        "按日期分组显示（今天、昨天、更早）",
+        "使用 motion.div 实现列表动画",
+        "点击记录查看详情",
+        "下拉刷新功能",
+        "空状态提示",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-012",
+      "title": "实现数据统计卡片",
+      "description": "作为用户，我需要查看今日/本周的营养摄入统计",
+      "acceptanceCriteria": [
+        "创建 NutritionCard 组件",
+        "计算今日热量、蛋白质、脂肪、碳水",
+        "与目标值对比（如有）显示进度条",
+        "本周趋势使用 recharts 图表展示",
+        "使用 motion 动画展示数字变化",
+        "数据为空时显示提示",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "实现手势导航",
+      "description": "作为用户，我希望可以通过左右滑动切换Tab",
+      "acceptanceCriteria": [
+        "安装 react-swipeable 依赖",
+        "创建 useSwipeNavigation hook",
+        "左滑切换到下一个Tab",
+        "右滑切换到上一个Tab",
+        "配合动画使用（spring transition）",
+        "在iOS/Android真机测试",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-014",
+      "title": "优化触摸反馈",
+      "description": "作为用户，点击按钮时应该有即时的视觉反馈",
+      "acceptanceCriteria": [
+        "所有按钮添加 whileTap={{ scale: 0.96 }}",
+        "Card组件添加hover和tap效果",
+        "长按Card显示删除选项",
+        "滚动时隐藏导航栏",
+        "使用 -webkit-tap-highlight-color: transparent",
+        "测试触摸响应延迟",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "实现下拉刷新",
+      "description": "作为用户，我希望在列表顶部下拉来刷新数据",
+      "acceptanceCriteria": [
+        "安装 react-pull-to-refresh 依赖",
+        "配置刷新动画和提示文本",
+        "刷新时重新加载数据",
+        "刷新完成后显示更新于X秒前",
+        "测试不同刷新位置",
+        "与手势导航不冲突",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "优化Safe Area适配",
+      "description": "作为用户，App内容应该正确适配刘海屏和底部指示器",
+      "acceptanceCriteria": [
+        "使用 env(safe-area-inset-top/bottom)",
+        "创建 SafeAreaView 组件",
+        "测试iPhone X及以上机型",
+        "测试Android不同屏幕比例",
+        "固定定位元素正确偏移",
+        "横屏模式适配",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-017",
+      "title": "实现同步队列机制",
+      "description": "作为系统，离线时的操作需要排队，在线时自动同步",
+      "acceptanceCriteria": [
+        "创建 SyncQueue 类管理待同步操作",
+        "操作类型: CREATE_MEAL, UPDATE_PROFILE, etc.",
+        "离线时将操作添加到队列",
+        "在线时自动处理队列",
+        "失败操作指数退避重试",
+        "同步状态显示在设置中",
+        "Typecheck passes"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-018",
+      "title": "实现后端API集成",
+      "description": "作为系统，需要与后端API同步数据",
+      "acceptanceCriteria": [
+        "创建 api/ 目录组织API调用",
+        "实现 api.meals.create() 上传meal数据",
+        "实现 api.meals.list() 获取服务器数据",
+        "实现 api.sync.pull() 拉取远程更新",
+        "JWT token管理",
+        "请求/响应拦截器",
+        "Typecheck passes"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "实现冲突解决策略",
+      "description": "作为系统，当本地和远程数据冲突时需要解决",
+      "acceptanceCriteria": [
+        "定义冲突类型（同时修改同一记录）",
+        "实现最后写入胜策略（简单）",
+        "或实现服务器胜策略",
+        "冲突记录标记并通知用户",
+        "提供手动解决冲突UI",
+        "测试各种冲突场景",
+        "Typecheck passes"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "优化图片加载和缓存",
+      "description": "作为用户，历史记录中的图片应该快速加载",
+      "acceptanceCriteria": [
+        "实现图片懒加载（IntersectionObserver）",
+        "使用Service Worker缓存图片",
+        "缩略图生成（用于列表）",
+        "渐进式加载（模糊→清晰）",
+        "加载失败时显示占位符",
+        "图片压缩后上传",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-021",
+      "title": "添加加载骨架屏",
+      "description": "作为用户，数据加载时应该看到骨架屏而不是空白",
+      "acceptanceCriteria": [
+        "创建 Skeleton 组件",
+        "MealList加载时显示骨架",
+        "统计卡片加载时显示骨架",
+        "使用shimmer动画效果",
+        "骨架布局与真实内容一致",
+        "加载时间<300ms时跳过骨架",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-022",
+      "title": "实现Toast通知系统",
+      "description": "作为用户，重要操作需要成功/失败的反馈",
+      "acceptanceCriteria": [
+        "创建 Toast 组件和 useToast hook",
+        "支持success, error, info类型",
+        "自动消失（3秒）",
+        "可手动关闭",
+        "支持多个Toast堆叠",
+        "使用spring动画",
+        "Typecheck passes",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-023",
+      "title": "实现深色模式完整支持",
+      "description": "作为用户，深色模式下所有界面都应该正确显示",
+      "acceptanceCriteria": [
+        "确保所有CSS变量有深色模式值",
+        "检查所有Card/Button/Input组件",
+        "图表颜色适配深色模式",
+        "图片保持原色（不变暗）",
+        "平滑过渡动画",
+        "遵循系统主题设置",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-024",
+      "title": "性能优化",
+      "description": "作为用户，App应该快速响应，不卡顿",
+      "acceptanceCriteria": [
+        "实现虚拟滚动（长列表）",
+        "图片使用WebP格式",
+        "代码分割（按路由）",
+        "分析bundle大小",
+        "Lighthouse Performance >90",
+        "首屏加载 <2秒",
+        "Verify in browser using dev-browser skill"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": ""
+    }
+  ]
+}

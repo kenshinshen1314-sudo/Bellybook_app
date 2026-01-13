@@ -1,0 +1,7 @@
+{
+  "name": "Bellybook iOS",
+  "description": "An AI-powered nutrition assistant with iOS native aesthetics, featuring meal analysis, subscription plans, and personalized dietary tracking.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
