@@ -125,13 +125,43 @@
 
 ---
 
+## [2025-01-13 19:50] - US-005: 设计IndexedDB数据模型
+**Implemented:**
+- Created src/db/schema.ts with complete IndexedDB schema definition
+- Defined 5 object stores: users, meals, syncQueue, dailyNutrition, cuisineUnlocks
+- Created TypeScript types: UserProfile, UserSettings, Meal, MealAnalysis, NutritionInfo, SyncQueueItem, etc.
+- Configured indexes including compound indexes (userId_date, userId_date for dailyNutrition)
+- Implemented createObjectStores() function for DB initialization
+- Added handleMigration() function for future schema migrations
+- Created utility functions: generateId(), createDailyNutritionId()
+
+**Files Changed:**
+- src/db/schema.ts - New file with complete database schema and type definitions
+
+**Learnings:**
+- IndexedDB uses object stores (not tables) with keyPath for primary keys
+- Indexes enable efficient queries on non-key properties
+- Compound indexes allow querying on multiple fields together
+- Auto-increment keys useful for derived/composite keys
+- Version migration pattern: oldVersion → newVersion in onupgradeneeded
+- Separate profile and settings types for cleaner separation of concerns
+
+**Gotchas:**
+- IndexedDB is async - all operations return promises (need wrapper like 'idb' library)
+- onupgradeneeded only runs once per version - schema changes require version bump
+- Index names must be unique per store
+- Chrome DevTools Application tab shows IndexedDB contents for debugging
+- Safari has storage limits (~50MB) - need to manage image storage carefully
+
+---
+
 ## Story Completion Status
 
 - [x] US-001: 添加PWA Manifest配置
 - [x] US-002: 创建Service Worker基础框架
 - [x] US-003: 配置Vite PWA插件
 - [x] US-004: 实现离线检测和UI提示
-- [ ] US-005: 设计IndexedDB数据模型
+- [x] US-005: 设计IndexedDB数据模型
 - [ ] US-006: 创建IndexedDB封装层
 - [ ] US-007: 实现用户数据存储
 - [ ] US-008: 实现meal记录存储
