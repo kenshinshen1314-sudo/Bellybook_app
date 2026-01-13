@@ -49,8 +49,8 @@
         "验证更新提示机制"
       ],
       "priority": 3,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "安装vite-plugin-pwa，配置自动更新模式，workbox缓存策略（NetworkFirst for API, CacheFirst for images），代码分割（react-vendor, ui-vendor）"
     },
     {
       "id": "US-004",
