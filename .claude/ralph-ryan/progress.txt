@@ -187,6 +187,38 @@
 
 ---
 
+## [2025-01-13 20:00] - US-007: 实现用户数据存储
+**Implemented:**
+- Created src/hooks/useProfile.ts hook for user profile and settings management
+- Integrated useProfile hook in App.tsx to replace useState for theme/language
+- Implemented saveProfile/loadProfile/updateTheme/updateLanguage functions
+- Settings are persisted to IndexedDB automatically
+- Theme changes (dark/light) persist across page refreshes
+- Language changes persist across page refreshes
+- Theme is applied to document.documentElement on load
+
+**Files Changed:**
+- src/hooks/useProfile.ts - New hook with profile/settings CRUD operations
+- src/App.tsx - Integrated useProfile hook, removed useState for theme/language
+- src/db/index.ts - Fixed import statement (added 'type' for type imports)
+
+**Learnings:**
+- useProfile hook manages both profile and settings in one call
+- Settings are loaded on mount and saved on change
+- Theme class is applied both in useProfile effect and in App.tsx (dual protection)
+- Language enum (Language.ZH/EN) maps to settings string ('zh'/'en')
+- isLoading state allows UI to wait for IndexedDB data before rendering
+- Default user data is created if not exists in IndexedDB
+
+**Gotchas:**
+- Initial render may use default values before IndexedDB loads
+- Need to handle loading state to prevent flicker
+- Settings update is async - need to await for confirmation
+- Theme change should update document class immediately for visual feedback
+- Consider adding migration logic for existing users (no current users yet)
+
+---
+
 ## Story Completion Status
 
 - [x] US-001: 添加PWA Manifest配置
@@ -195,7 +227,7 @@
 - [x] US-004: 实现离线检测和UI提示
 - [x] US-005: 设计IndexedDB数据模型
 - [x] US-006: 创建IndexedDB封装层
-- [ ] US-007: 实现用户数据存储
+- [x] US-007: 实现用户数据存储
 - [ ] US-008: 实现meal记录存储
 - [ ] US-009: 创建状态管理Context
 - [ ] US-010: 重构拍照分析流程

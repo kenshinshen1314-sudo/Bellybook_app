@@ -3,7 +3,7 @@
  * Provides a clean API for IndexedDB operations using the 'idb' library
  */
 
-import openDB, { DBSchema, IDBPDatabase } from 'idb';
+import { openDB, type DBSchema, type IDBPDatabase } from 'idb';
 import {
   DB_CONFIG,
   DB_STORES,

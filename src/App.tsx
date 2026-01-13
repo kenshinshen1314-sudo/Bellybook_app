@@ -8,6 +8,7 @@ import { OfflineBanner } from './components/OfflineBanner';
 import { analyzeFoodImage } from './services/geminiService';
 import { fadeInUp, pageTransition } from './lib/motion';
 import { useOnline } from './hooks/useOnline';
+import { useProfile } from './hooks/useProfile';
 import { ChevronLeft, Check, Copy, Share2, MessageSquare, Star, Settings, X, ChevronRight, Clock, ArrowLeft, Zap, BookOpen, FileText, BarChart3, Edit3 } from 'lucide-react';
 
 // Tabs
@@ -22,12 +23,27 @@ import { LeaderboardPage, UserDetailPage } from './views/SocialSubViews';
 export default function App() {
   // Network status
   const isOnline = useOnline();
+
+  // User profile and settings (persisted to IndexedDB)
+  const { settings, isLoading: profileLoading, updateTheme, updateLanguage } = useProfile();
+
   // State
   const [currentView, setCurrentView] = useState<AppView>(AppView.MAIN_TABS);
   const [activeTab, setActiveTab] = useState(0);
   const [isPremium, setIsPremium] = useState(false);
-  const [language, setLanguage] = useState<Language>(Language.ZH);
-  const [theme, setTheme] = useState<Theme>('light'); // Default to light mode
+
+  // Use settings values with defaults for initial render
+  const language = settings?.language === 'zh' ? Language.ZH : Language.EN;
+  const theme: Theme = settings?.theme === 'dark' ? 'dark' : 'light';
+
+  // Handlers for theme/language changes
+  const handleThemeChange = async (newTheme: Theme) => {
+    await updateTheme(newTheme);
+  };
+
+  const handleLanguageChange = async (newLanguage: Language) => {
+    await updateLanguage(newLanguage === Language.ZH ? 'zh' : 'en');
+  };
   const [analysisData, setAnalysisData] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
