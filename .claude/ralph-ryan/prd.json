@@ -64,8 +64,8 @@
         "测试离线/在线切换场景"
       ],
       "priority": 4,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "创建useOnline hook检测网络状态，创建OfflineBanner组件显示离线提示条，在handleCameraClick中添加离线检查"
     },
     {
       "id": "US-005",

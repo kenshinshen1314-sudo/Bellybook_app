@@ -4,8 +4,10 @@ import { AppView, Language, AnalysisResult, TEXT, Theme } from './types';
 import { TabBar, NavBar, ListItem, ToggleItem } from './components/UIComponents';
 import { Button } from './components/ui/button';
 import { Card, CardContent } from './components/ui/card';
+import { OfflineBanner } from './components/OfflineBanner';
 import { analyzeFoodImage } from './services/geminiService';
 import { fadeInUp, pageTransition } from './lib/motion';
+import { useOnline } from './hooks/useOnline';
 import { ChevronLeft, Check, Copy, Share2, MessageSquare, Star, Settings, X, ChevronRight, Clock, ArrowLeft, Zap, BookOpen, FileText, BarChart3, Edit3 } from 'lucide-react';
 
 // Tabs
@@ -18,6 +20,8 @@ import Tab4Social from './views/tabs/Tab4Social';
 import { LeaderboardPage, UserDetailPage } from './views/SocialSubViews';
 
 export default function App() {
+  // Network status
+  const isOnline = useOnline();
   // State
   const [currentView, setCurrentView] = useState<AppView>(AppView.MAIN_TABS);
   const [activeTab, setActiveTab] = useState(0);
@@ -47,6 +51,11 @@ export default function App() {
   // --- Handlers ---
 
   const handleCameraClick = () => {
+    // Disable camera when offline
+    if (!isOnline) {
+      alert('离线模式下无法使用拍照分析功能，请检查网络连接');
+      return;
+    }
     fileInputRef.current?.click();
   };
 
@@ -535,6 +544,9 @@ export default function App() {
   // 5. Main Tabs
   return (
     <div className={`min-h-screen relative ${mainBgClass}`}>
+      {/* Offline Status Banner */}
+      <OfflineBanner isOffline={!isOnline} />
+
       {/* Top Bar for Main Tabs */}
       <div className="fixed top-0 left-0 right-0 h-[50px] z-40 flex items-center justify-between px-4 mt-safe-top bg-gradient-to-b from-background/80 to-transparent">
           {/* Top Left: User Avatar (Profile) - Replaces Tomato for Passport feel */}
