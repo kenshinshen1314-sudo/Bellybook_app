@@ -155,6 +155,38 @@
 
 ---
 
+## [2025-01-13 19:55] - US-006: 创建IndexedDB封装层
+**Implemented:**
+- Installed 'idb' library for cleaner IndexedDB API
+- Created src/db/index.ts with complete database wrapper
+- Implemented operations for all 5 stores: users, meals, syncQueue, dailyNutrition, cuisineUnlocks
+- Key operations: get, getAll, add, update, delete, getByDateRange, getUnsynced, markSynced
+- Sync queue processing with retry logic and error handling
+- Utility functions: clearAll, getDbSize, closeDB
+- Full TypeScript typing with DBSchema interface
+
+**Files Changed:**
+- src/db/index.ts - New file with complete IndexedDB wrapper (~500 lines)
+- package.json - Added 'idb' dependency
+
+**Learnings:**
+- 'idb' library provides Promise-based API for IndexedDB (much cleaner than raw API)
+- DBSchema interface enables full TypeScript typing for all DB operations
+- Compound indexes accessed with tuple syntax: [userId, date]
+- openCursor() allows efficient iteration over large result sets
+- Transaction-based operations ensure atomicity
+- Index names in DBSchema must match index names in schema.ts
+
+**Gotchas:**
+- All IndexedDB operations are async - must use await
+- Cursor iteration requires manual loop with continue()
+- Transaction mode matters: 'readonly' vs 'readwrite'
+- Need to handle upgrade scenario (onupgradeneeded) for schema changes
+- Browser storage limits vary - Safari ~50MB, Chrome ~6GB (with quota)
+- Consider cleanup strategy for old images in meals (US-020)
+
+---
+
 ## Story Completion Status
 
 - [x] US-001: 添加PWA Manifest配置
@@ -162,7 +194,7 @@
 - [x] US-003: 配置Vite PWA插件
 - [x] US-004: 实现离线检测和UI提示
 - [x] US-005: 设计IndexedDB数据模型
-- [ ] US-006: 创建IndexedDB封装层
+- [x] US-006: 创建IndexedDB封装层
 - [ ] US-007: 实现用户数据存储
 - [ ] US-008: 实现meal记录存储
 - [ ] US-009: 创建状态管理Context
