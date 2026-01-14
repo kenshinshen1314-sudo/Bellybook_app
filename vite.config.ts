@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => {
         tailwindcss(),
         VitePWA({
           registerType: 'autoUpdate',
-          includeAssets: ['icon.svg', 'apple-touch-icon.png'],
+          includeAssets: ['icon.svg'],
           manifest: {
             name: '胃之书 - Bellybook',
             short_name: 'Bellybook',
@@ -29,22 +29,9 @@ export default defineConfig(({ mode }) => {
             start_url: '/',
             icons: [
               {
-                src: 'icon-192x192.png',
-                sizes: '192x192',
-                type: 'image/png',
-                purpose: 'maskable any'
-              },
-              {
-                src: 'icon-512x512.png',
-                sizes: '512x512',
-                type: 'image/png',
-                purpose: 'maskable any'
-              },
-              {
-                src: 'apple-touch-icon.png',
-                sizes: '180x180',
-                type: 'image/png',
-                purpose: 'apple touch icon'
+                src: 'icon.svg',
+                sizes: '192x192 512x512',
+                purpose: 'any maskable'
               }
             ],
             shortcuts: [
@@ -53,19 +40,19 @@ export default defineConfig(({ mode }) => {
                 short_name: '拍照',
                 description: '打开相机拍摄食物照片',
                 url: '/?action=camera',
-                icons: [{ src: 'icon-96x96.png', sizes: '96x96' }]
+                icons: [{ src: 'icon.svg', sizes: '192x192' }]
               },
               {
                 name: '历史记录',
                 short_name: '历史',
                 description: '查看食物记录历史',
                 url: '/?tab=history',
-                icons: [{ src: 'icon-96x96.png', sizes: '96x96' }]
+                icons: [{ src: 'icon.svg', sizes: '192x192' }]
               }
             ]
           },
           workbox: {
-            globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+            globPatterns: ['**/*.{js,css,html,ico,svg,woff2}'],
             runtimeCaching: [
               {
                 urlPattern: /^https:\/\/api\.openai\.com\/.*/i,

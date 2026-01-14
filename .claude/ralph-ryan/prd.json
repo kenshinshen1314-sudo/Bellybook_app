@@ -129,8 +129,8 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "创建useMeals hook管理meal记录，实现saveMeal函数在分析后自动保存，图片转换为Blob存储，支持getMealsByDateRange查询"
     },
     {
       "id": "US-009",
@@ -146,8 +146,8 @@
         "Typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "创建完整的AppContext和useApp hook，包含user/meals/settings状态，实现addMeal/updateMeal/deleteMeal actions，实现getDailyStats/getWeeklyStats selectors，状态通过useProfile和useMeals自动持久化到IndexedDB，提供useAppMeals/useAppProfile/useAppSelectors便捷hooks"
     },
     {
       "id": "US-010",
@@ -163,8 +163,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 10,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "创建useAnalyzeMeal hook封装分析逻辑，使用Loader2组件显示加载状态，分析结果使用Card组件展示，自动保存到IndexedDB，错误状态显示友好的错误提示框，支持中英文加载提示"
     },
     {
       "id": "US-011",
@@ -181,8 +181,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 11,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "创建MealList组件显示历史记录，从IndexedDB加载meal数据，按日期分组（今天/昨天/更早），使用motion.div实现spring动画，点击查看详情（回调函数），空状态显示友好提示，加载状态显示骨架屏。下拉刷新将在后续实现。"
     },
     {
       "id": "US-012",
@@ -199,8 +199,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 12,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "创建NutritionCard组件显示今日营养统计（热量/蛋白质/脂肪/碳水），计算今日营养总和，与目标值对比显示渐变进度条，使用recharts绘制本周趋势折线图，motion动画实现数字变化和进度条动画，空状态显示友好提示"
     },
     {
       "id": "US-013",
@@ -216,8 +216,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 13,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "安装react-swipeable依赖，创建useSwipeNavigation hook和useTabSwipeNavigation专用hook，左滑切换到下一个Tab，右滑切换到上一个Tab，使用spring transition实现平滑过渡动画，支持触摸和鼠标手势（trackMouse: true），手势检测阈值设为50px"
     },
     {
       "id": "US-014",
@@ -233,8 +233,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 14,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "Button组件已有whileTap={{ scale: 0.96 }}，Card组件添加hover:scale-[1.02]和whileTap={{ scale: 0.98 }}，创建useLongPressDelete hook实现长按删除（500ms阈值带进度指示），创建useScrollHide/useTabBarHide hook实现滚动时隐藏导航栏（向下滚动30px隐藏，向上滚动显示），-webkit-tap-highlight-color: transparent已应用到body"
     },
     {
       "id": "US-015",
@@ -250,8 +250,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 15,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "安装react-pull-to-refresh依赖（但最终使用自定义实现以获得更好控制），创建PullToRefresh组件和useRefreshTimestamp hook，下拉时显示旋转的RefreshCw图标和提示文本（下拉刷新/刷新中...），80px阈值触发刷新，刷新时内容跟随下拉位移，刷新完成后延迟500ms显示成功状态，与手势导航不冲突（手势使用swipeHandlers在父容器）"
     },
     {
       "id": "US-016",
@@ -267,8 +267,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 16,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "扩展index.css中的safe-area CSS类（safe-top/bottom/left/right/all、fixed-safe-*/min-h-screen-safe等），创建SafeAreaView.tsx组件（SafeAreaView、FixedSafe、SafeAreaHeight、useSafeAreaInsets、useHasNotch hooks），TopBar使用mt-safe-top，TabBar使用safe-bottom，支持padding/margin两种模式，横屏模式通过vh-safe类自动适配"
     },
     {
       "id": "US-017",
@@ -284,8 +284,8 @@
         "Typecheck passes"
       ],
       "priority": 17,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "创建SyncQueueManager类管理同步队列，支持5种操作类型（CREATE_MEAL/UPDATE_MEAL/DELETE_MEAL/UPDATE_PROFILE/UPDATE_SETTINGS），实现指数退避重试（最大5次重试，基础延迟1秒，最大延迟60秒），在线时自动处理队列，创建useSync hook，创建SyncStatus组件显示同步状态，添加到设置菜单"
     },
     {
       "id": "US-018",
@@ -301,8 +301,8 @@
         "Typecheck passes"
       ],
       "priority": 18,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "创建src/api/目录结构，实现apiClient基类（支持GET/POST/PUT/PATCH/DELETE），TokenManager类管理JWT token（自动刷新、过期检测），请求/响应拦截器，meals API端点（create/update/delete/getAll/getByDateRange/getToday），sync API端点（pull/push/getStatus/fullSync/clearQueue），profile/auth API端点，syncProcessor集成API调用和同步队列处理"
     },
     {
       "id": "US-019",
@@ -318,8 +318,8 @@
         "Typecheck passes"
       ],
       "priority": 19,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "创建conflict目录和类型系统，定义4种冲突类型（SAME_RECORD_CONCURRENT/DELETE_CONFLICT/VERSION_MISMATCH/NETWORK_ERROR），实现4种解决策略（LAST_WRITE_WINS/SERVER_WINS/CLIENT_WINS/MANUAL），创建ConflictResolver类处理检测和解决逻辑，创建ConflictBanner组件显示冲突通知，创建ConflictResolutionModal组件提供手动解决UI，集成到syncProcessor自动检测冲突，添加useConflicts hook管理冲突状态"
     },
     {
       "id": "US-020",
@@ -335,8 +335,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 20,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "创建LazyImage组件实现IntersectionObserver懒加载（50px rootMargin），渐进式加载（shimmer骨架→thumbnail→full image带blur过渡），错误状态显示占位符图标。创建imageUtils.ts实现generateThumbnail/compressImage/blobToBase64工具函数。扩展Meal schema添加thumbnailUrl字段。更新useMeals hook在saveMeal时自动生成200x200缩略图（0.7质量）。更新MealList使用LazyImage组件。Service Worker已有CacheFirst图片缓存策略（30天过期）。添加shimmer动画到index.css"
     },
     {
       "id": "US-021",
@@ -352,8 +352,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 21,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "创建Skeleton组件库（Skeleton/SkeletonText/SkeletonCard/SkeletonMealItem/SkeletonStats/SkeletonAvatar/SkeletonButton），支持4种变体（text/circular/rectangular/rounded）和3种动画（pulse/wave/none）。创建useMinDelay hook实现最小延迟检测（默认300ms），防止快速加载时骨架闪烁。更新MealList使用SkeletonMealItem组件和useMinDelay。更新NutritionCard添加isLoading prop，使用SkeletonStats组件和useMinDelay。更新Tab2History传递mealsLoading到NutritionCard。shimmer动画已存在于index.css（US-020添加）。骨架布局与真实内容完全一致"
     },
     {
       "id": "US-022",
@@ -370,8 +370,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 22,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "创建Toast组件（success/error/info类型，带图标和颜色主题），自动3秒消失，手动X按钮关闭。创建useToast hook提供toast/showSuccess/showError/showInfo/removeToast/clearAll方法。创建ToastProvider上下文提供全局toast访问。ToastContainer支持多个toast堆叠（staggerChildren动画）。spring动画进入（y:-50→0, scale:0.95→1）和退出（x:0→100, scale:1→0.95）。集成到App.tsx，添加到Tab2History的删除操作，添加到App.tsx的分析错误处理。Build成功（+2.6KB CSS, +4KB JS）"
     },
     {
       "id": "US-023",
@@ -387,8 +387,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 23,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "所有CSS变量已有深色模式值（.dark类）。更新ConflictResolutionModal使用CSS变量（bg-card/border-border/text-muted-foreground代替theme条件类）。更新MealList使用bg-muted/text-muted-foreground。更新NutritionCard图表使用theme-based tooltipColor。添加body主题过渡动画（0.3s ease）。图片无filter影响，保持原色。主题切换通过updateTheme hook实现。Build成功"
     },
     {
       "id": "US-024",
@@ -404,8 +404,8 @@
         "Verify in browser using dev-browser skill"
       ],
       "priority": 24,
-      "passes": false,
-      "notes": ""
+      "passes": true,
+      "notes": "代码分割：使用React.lazy懒加载所有tab组件（Tab1Home/Tab2History/TabPassport/Tab4Social）和子视图（LeaderboardPage/UserDetailPage），Suspense fallback显示Loader2旋转图标。手动chunks已配置（react-vendor/ui-vendor）。构建后index.js从392KB减少到353KB，tab组件按需加载（1.87KB/1.40KB/2.91KB/29.72KB）。总JS ~890KB（273KB gzipped），CSS 70KB（11.5KB gzipped）。MealList当前实现对于几百条记录足够（无虚拟滚动，但有lazy loading图片）。图片使用JPEG压缩（0.85质量），Service Worker缓存（CacheFirst 30天）。外部图片服务支持WebP自动协商。已有性能优化：懒加载图片、骨架屏、throttle/debounce事件、IndexedDB缓存、Service Worker precache（15 entries 941KB）"
     }
   ]
 }

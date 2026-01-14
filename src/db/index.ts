@@ -17,6 +17,10 @@ import {
   type CuisineUnlock,
 } from './schema';
 
+// Re-export types for convenience
+export type { UserProfile, UserSettings, Meal, SyncQueueItem, DailyNutrition, CuisineUnlock };
+export { DB_CONFIG, DB_STORES };
+
 // ============================================================================
 // Database Interface Definition
 // ============================================================================
@@ -138,7 +142,10 @@ export const users = {
    */
   async get(userId: string): Promise<{ profile: UserProfile; settings: UserSettings } | undefined> {
     const db = await getDB();
-    return db.get(DB_STORES.USERS, userId);
+    const record = await db.get(DB_STORES.USERS, userId) as any;
+    if (!record) return undefined;
+    // Return data in expected format (without the root-level id)
+    return { profile: record.profile, settings: record.settings };
   },
 
   /**
@@ -146,7 +153,9 @@ export const users = {
    */
   async set(userId: string, data: { profile: UserProfile; settings: UserSettings }): Promise<void> {
     const db = await getDB();
-    await db.put(DB_STORES.USERS, data, userId);
+    // Add id at root level to match keyPath: 'id'
+    const record = { id: userId, ...data };
+    await db.put(DB_STORES.USERS, record);
     console.log('[DB] User data saved:', userId);
   },
 

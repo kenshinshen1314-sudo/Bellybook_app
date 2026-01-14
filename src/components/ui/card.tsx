@@ -33,7 +33,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
         className={cn(
           "rounded-2xl bg-card text-card-foreground",
           "transition-all duration-200",
-          "hover:scale-[1.02]",
+          "hover:scale-[1.02] active:scale-[0.98]",
           className
         )}
         style={{
@@ -41,6 +41,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(
         }}
         onHoverStart={() => setIsHovered(true)}
         onHoverEnd={() => setIsHovered(false)}
+        whileTap={{ scale: 0.98 }}
         {...props}
       />
     )

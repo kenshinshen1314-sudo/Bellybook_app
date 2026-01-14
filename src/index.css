@@ -92,6 +92,8 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
+  /* Smooth theme transition */
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Safe Area Support */
@@ -101,6 +103,65 @@ body {
 
 .safe-bottom {
   padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-left {
+  padding-left: env(safe-area-inset-left);
+}
+
+.safe-right {
+  padding-right: env(safe-area-inset-right);
+}
+
+.safe-all {
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/* Safe area for fixed positioned elements */
+.fixed-safe-top {
+  top: env(safe-area-inset-top);
+}
+
+.fixed-safe-bottom {
+  bottom: env(safe-area-inset-bottom);
+}
+
+.fixed-safe-left {
+  left: env(safe-area-inset-left);
+}
+
+.fixed-safe-right {
+  right: env(safe-area-inset-right);
+}
+
+/* Safe area min-height for full-screen containers */
+.min-h-screen-safe {
+  min-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+}
+
+/* Safe area margin utilities */
+.mt-safe-top {
+  margin-top: env(safe-area-inset-top);
+}
+
+.mb-safe-bottom {
+  margin-bottom: env(safe-area-inset-bottom);
+}
+
+.ml-safe-left {
+  margin-left: env(safe-area-inset-left);
+}
+
+.mr-safe-right {
+  margin-right: env(safe-area-inset-right);
+}
+
+/* Viewport height with safe area consideration */
+.vh-safe {
+  height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
 }
 
 /* Hide scrollbar for clean mobile look */
@@ -123,5 +184,112 @@ body {
   }
   ::-webkit-scrollbar-thumb:hover {
     background: var(--foreground);
+  }
+}
+
+/* Shimmer animation for skeleton loading */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 1.5s infinite linear;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 20%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0.1) 80%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+}
+
+/* Horizontal scroll for ingredient cards */
+.ingredient-scroll {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.ingredient-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.ingredient-scroll > * {
+  scroll-snap-align: start;
+  flex-shrink: 0;
+}
+
+/* Meal overlay container */
+.meal-overlay-container {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+}
+
+.meal-image-wrapper {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.meal-image-wrapper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(0,0,0,0.1) 0%,
+    rgba(0,0,0,0.3) 100%
+  );
+  pointer-events: none;
+}
+
+/* Nutrition card overlay */
+.nutrition-overlay-card {
+  position: absolute;
+  top: 50%;
+  right: -20px;
+  transform: translateY(-50%) rotate(-8deg);
+  background: rgba(255,255,255,0.97);
+  border-radius: 12px;
+  padding: 14px 16px;
+  box-shadow: 
+    0 4px 20px rgba(0,0,0,0.12),
+    0 8px 32px rgba(0,0,0,0.08);
+  border: 1px solid rgba(0,0,0,0.06);
+  min-width: 160px;
+  z-index: 10;
+}
+
+.dark .nutrition-overlay-card {
+  background: rgba(40,40,42,0.97);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* Fade in animation */
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

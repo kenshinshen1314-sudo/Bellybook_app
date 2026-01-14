@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { MotionConfig } from 'framer-motion';
 import App from './App';
+import { ToastProvider } from './contexts/ToastContext';
 import './index.css';
 
 // Import the registered service worker
@@ -44,7 +45,9 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <MotionConfig reducedMotion="user">
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </MotionConfig>
   </React.StrictMode>
 );

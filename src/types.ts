@@ -17,20 +17,36 @@ export interface UserProfile {
   gender: 'male' | 'female' | 'secret';
 }
 
+export interface Ingredient {
+  name: string;
+  percentage: number;
+}
+
 export interface AnalysisResult {
   foodName: string;
-  calories: number;
-  macros: {
-    protein: string;
-    fat: string;
-    carbs: string;
+  cuisine?: string;
+  nutrition?: {
+    calories: number;
+    protein: number;
+    fat: number;
+    carbohydrates: number;
   };
+  ingredients?: Ingredient[];
   suggestions: string[];
   description: string;
   plating: string;
   sensory: string;
   container: string;
-  imageUrl: string;
+  imageUrl?: string;
+  // Legacy fields for backward compatibility
+  calories?: number;
+  macros?: {
+    protein: string;
+    fat: string;
+    carbs: string;
+  };
+  poeticDescription?: string;
+  nutritionCommentary?: string;
 }
 
 export enum AppView {
@@ -41,6 +57,7 @@ export enum AppView {
   PROFILE_PRIVACY = 'PROFILE_PRIVACY',
   PROFILE_NOTIFICATIONS = 'PROFILE_NOTIFICATIONS',
   PROFILE_LANGUAGE = 'PROFILE_LANGUAGE',
+  PROFILE_SYNC = 'PROFILE_SYNC',
   PREMIUM_LANDING = 'PREMIUM_LANDING',
   PAYMENT_GATEWAY = 'PAYMENT_GATEWAY',
   ANALYSIS_RESULT = 'ANALYSIS_RESULT',

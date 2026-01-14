@@ -59,6 +59,19 @@ export interface NutritionInfo {
 /**
  * AI Analysis result for a food image
  */
+/**
+ * Ingredient information for a meal
+ */
+export interface IngredientInfo {
+  name: string;
+  percentage: number;
+  icon?: string; // Emoji or icon identifier
+  description?: string; // Brief description of the ingredient
+}
+
+/**
+ * AI Analysis result for a food image
+ */
 export interface MealAnalysis {
   foodName: string;
   cuisine?: string;
@@ -67,7 +80,10 @@ export interface MealAnalysis {
   container?: string;
   description?: string;
   nutrition: NutritionInfo;
+  ingredients?: IngredientInfo[];
   suggestions?: string[];
+  poeticDescription?: string;
+  nutritionCommentary?: string;
   analyzedAt: string; // ISO timestamp
 }
 
@@ -79,6 +95,7 @@ export interface Meal {
   userId: string;
   imageUrl: string; // Base64 or blob URL
   imageBlob?: Blob; // For offline storage
+  thumbnailUrl?: string; // Thumbnail URL for list view
   analysis: MealAnalysis;
   mealType?: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   notes?: string;
