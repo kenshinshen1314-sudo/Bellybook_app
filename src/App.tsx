@@ -94,7 +94,8 @@ export default function App() {
 
   // Handlers for theme/language changes
   const handleThemeChange = async (newTheme: Theme) => {
-    await updateTheme(newTheme);
+    // Cast to any to avoid type mismatch between types.ts Theme (system) and useProfile Theme (auto)
+    await updateTheme(newTheme as any);
   };
 
   const handleLanguageChange = async (newLanguage: Language) => {
@@ -562,8 +563,8 @@ export default function App() {
         {currentView === AppView.PROFILE_APPEARANCE && (
           <div className="pt-20 px-4 animate-slide-left">
             <div className={`${profileBgClass} rounded-xl overflow-hidden`}>
-              <ListItem theme={theme} label="Light" hasArrow={false} value={theme === 'light' ? <Check size={16} className="text-blue-500" /> : null} onClick={() => setTheme('light')} />
-              <ListItem theme={theme} label="Dark" hasArrow={false} value={theme === 'dark' ? <Check size={16} className="text-blue-500" /> : null} onClick={() => setTheme('dark')} />
+              <ListItem theme={theme} label="Light" hasArrow={false} value={theme === 'light' ? <Check size={16} className="text-blue-500" /> : null} onClick={() => handleThemeChange('light')} />
+              <ListItem theme={theme} label="Dark" hasArrow={false} value={theme === 'dark' ? <Check size={16} className="text-blue-500" /> : null} onClick={() => handleThemeChange('dark')} />
             </div>
           </div>
         )}
@@ -576,13 +577,13 @@ export default function App() {
                 label="简体中文"
                 hasArrow={false}
                 value={language === Language.ZH ? <Check size={20} className="text-blue-500" /> : null}
-                onClick={() => setLanguage(Language.ZH)}
+                onClick={() => handleLanguageChange(Language.ZH)}
               />
               <ListItem theme={theme}
                 label="English"
                 hasArrow={false}
                 value={language === Language.EN ? <Check size={20} className="text-blue-500" /> : null}
-                onClick={() => setLanguage(Language.EN)}
+                onClick={() => handleLanguageChange(Language.EN)}
               />
             </div>
           </div>
@@ -734,8 +735,8 @@ export default function App() {
           <div
             onClick={() => setSelectedPlan('monthly')}
             className={`rounded-2xl p-4 border transition-all cursor-pointer ${selectedPlan === 'monthly'
-                ? `border-[#E0CEB5] ${theme === 'dark' ? 'bg-[#E0CEB5]/10' : 'bg-[#E0CEB5]/20'}`
-                : `${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'} bg-transparent`
+              ? `border-[#E0CEB5] ${theme === 'dark' ? 'bg-[#E0CEB5]/10' : 'bg-[#E0CEB5]/20'}`
+              : `${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'} bg-transparent`
               }`}
           >
             <div className={`text-sm mb-2 ${selectedPlan === 'monthly' ? (theme === 'dark' ? 'text-[#E0CEB5]' : 'text-[#B8860B]') : (theme === 'dark' ? 'text-[#E0CEB5]' : 'text-foreground')}`}>{t.subscribe_monthly}</div>
@@ -746,8 +747,8 @@ export default function App() {
           <div
             onClick={() => setSelectedPlan('yearly')}
             className={`rounded-2xl p-4 border transition-all cursor-pointer ${selectedPlan === 'yearly'
-                ? `border-[#E0CEB5] ${theme === 'dark' ? 'bg-[#E0CEB5]/10' : 'bg-[#E0CEB5]/20'}`
-                : `${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'} bg-transparent`
+              ? `border-[#E0CEB5] ${theme === 'dark' ? 'bg-[#E0CEB5]/10' : 'bg-[#E0CEB5]/20'}`
+              : `${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'} bg-transparent`
               }`}
           >
             <div className={`text-sm mb-2 ${selectedPlan === 'yearly' ? (theme === 'dark' ? 'text-[#E0CEB5]' : 'text-[#B8860B]') : (theme === 'dark' ? 'text-[#E0CEB5]' : 'text-foreground')}`}>{t.subscribe_yearly}</div>
