@@ -53,20 +53,13 @@ export async function generateThumbnail(
       ctx.drawImage(img, 0, 0, width, height);
 
       // Convert to blob
-      canvas.toBlob(
-        (blob) => {
-          URL.revokeObjectURL(url);
-
-          if (!blob) {
-            reject(new Error('Failed to generate thumbnail'));
-            return;
-          }
-
-          resolve(URL.createObjectURL(blob));
-        },
-        'image/jpeg',
-        quality
-      );
+      // Convert to base64 Data URL for persistence
+      try {
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl);
+      } catch (e) {
+        reject(e);
+      }
     };
 
     img.onerror = () => {

@@ -35,6 +35,17 @@ export function LazyImage({
   const imgRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Debug log on mount
+  useEffect(() => {
+    console.log('[LazyImage] Component props:', {
+      src: src?.substring(0, 50),
+      srcLength: src?.length,
+      thumbnailSrc: thumbnailSrc?.substring(0, 50),
+      thumbnailSrcLength: thumbnailSrc?.length,
+      alt,
+    });
+  }, [src, thumbnailSrc, alt]);
+
   // Intersection Observer for lazy loading
   useEffect(() => {
     if (loading === 'eager' || isInView) return;
@@ -68,31 +79,46 @@ export function LazyImage({
 
     const img = imgRef.current;
 
+    console.log('[LazyImage] Loading image:', {
+      isInView,
+      hasImgRef: !!imgRef.current,
+      src: src?.substring(0, 50),
+      thumbnailSrc: thumbnailSrc?.substring(0, 50),
+      isLoaded,
+      hasError,
+    });
+
     // Load thumbnail first if available
     if (thumbnailSrc && !isLoaded) {
+      console.log('[LazyImage] Loading thumbnail...');
       const thumbLoader = new Image();
       thumbLoader.src = thumbnailSrc;
       thumbLoader.onload = () => {
+        console.log('[LazyImage] Thumbnail loaded successfully');
         setIsLoading(false);
       };
       thumbLoader.onerror = () => {
+        console.log('[LazyImage] Thumbnail failed to load');
         // If thumbnail fails, try loading full image directly
         setIsLoading(false);
       };
     }
 
     // Then load full image
-    if (isInView) {
+    if (isInView && src) {
+      console.log('[LazyImage] Loading full image...');
       const fullLoader = new Image();
       fullLoader.src = src;
 
       fullLoader.onload = () => {
+        console.log('[LazyImage] Full image loaded successfully');
         setIsLoaded(true);
         setIsLoading(false);
         setHasError(false);
       };
 
       fullLoader.onerror = () => {
+        console.log('[LazyImage] Full image failed to load');
         setIsLoading(false);
         setHasError(true);
         setIsLoaded(false);
@@ -100,13 +126,16 @@ export function LazyImage({
     }
 
     // Set the src directly on the img element for caching
-    if (img && isInView && !hasError) {
+    if (img && isInView && !hasError && src) {
+      console.log('[LazyImage] Setting img.src');
       img.src = src;
       img.onload = () => {
+        console.log('[LazyImage] img element loaded');
         setIsLoaded(true);
         setIsLoading(false);
       };
       img.onerror = () => {
+        console.log('[LazyImage] img element error');
         setIsLoading(false);
         setHasError(true);
       };

@@ -17,6 +17,7 @@ interface MealListProps {
   onMealClick?: (meal: Meal) => void;
   onMealDelete?: (mealId: string) => void;
   isLoading?: boolean;
+  hideDateHeaders?: boolean;
 }
 
 interface MealGroup {
@@ -130,6 +131,22 @@ function MealItem({
     (language === Language.ZH ? '未知食物' : 'Unknown Food');
   const cuisine = meal.analysis?.cuisine || '';
 
+  // Get image URL - prefer thumbnail for list view, fallback to full image
+  const displayImageUrl = meal.thumbnailUrl || meal.imageUrl || '';
+
+  // Debug log for first meal render
+  if (index === 0) {
+    console.log('[MealItem] Image data for first meal:', {
+      mealId: meal.id,
+      foodName,
+      hasImageUrl: !!meal.imageUrl,
+      hasThumbnailUrl: !!meal.thumbnailUrl,
+      displayImageUrlPrefix: displayImageUrl?.substring(0, 50),
+      imageUrlType: typeof meal.imageUrl,
+      thumbnailUrlType: typeof meal.thumbnailUrl,
+    });
+  }
+
   // Long press delete hook - called at component top level (Rules of Hooks compliant)
   const { getProps: longPressProps, progress } = useLongPressDelete({
     onDelete: () => {
@@ -181,9 +198,8 @@ function MealItem({
         )}
 
         <Card
-          className={`p-3 transition-transform cursor-pointer ${
-            theme === 'dark' ? 'bg-[#1C1C1E]' : 'bg-white'
-          }`}
+          className={`p-3 transition-transform cursor-pointer ${theme === 'dark' ? 'bg-[#1C1C1E]' : 'bg-white'
+            }`}
           onClick={() => {
             if (!isLongPressing) {
               onMealClick?.(meal);
@@ -193,17 +209,28 @@ function MealItem({
         >
           <div className="flex items-center space-x-3">
             {/* Thumbnail with LazyImage */}
-            <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0">
-              {meal.imageUrl ? (
-                <LazyImage
-                  src={meal.thumbnailUrl || meal.imageUrl}
-                  alt={foodName}
-                  className="w-full h-full"
-                  loading="lazy"
-                />
+            <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
+              {displayImageUrl ? (
+                <>
+                  <img
+                    src={displayImageUrl}
+                    alt={foodName}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      console.error('[MealItem] Image failed to load:', {
+                        displayImageUrlPrefix: displayImageUrl.substring(0, 100),
+                        error: (e.target as HTMLImageElement).onerror,
+                      });
+                    }}
+                    onLoad={() => {
+                      console.log('[MealItem] Image loaded successfully:', foodName);
+                    }}
+                  />
+                </>
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                  <Clock size={24} />
+                <div className="w-full h-full flex items-center justify-center text-muted-foreground flex-col text-xs p-1">
+                  <Clock size={16} />
+                  <span className="mt-1 text-[10px] text-gray-400">No Image</span>
                 </div>
               )}
             </div>
@@ -251,7 +278,7 @@ function MealItem({
 /**
  * MealList Component - Displays meal history grouped by date
  */
-export function MealList({ meals, language, theme, onMealClick, onMealDelete, isLoading }: MealListProps) {
+export function MealList({ meals, language, theme, onMealClick, onMealDelete, isLoading, hideDateHeaders }: MealListProps) {
   const groupedMeals = useMemo(() => {
     return groupMealsByDate(meals, language);
   }, [meals, language]);
@@ -334,9 +361,11 @@ export function MealList({ meals, language, theme, onMealClick, onMealDelete, is
       {groupedMeals.map((group) => (
         <div key={group.date} className="space-y-3">
           {/* Date Header */}
-          <div className={`text-sm font-semibold px-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
-            {group.label}
-          </div>
+          {!hideDateHeaders && (
+            <div className={`text-sm font-semibold px-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              {group.label}
+            </div>
+          )}
 
           {/* Meals in this group */}
           {group.meals.map((meal, index) => (

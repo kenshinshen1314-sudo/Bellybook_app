@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 interface UseScrollHideOptions {
   threshold?: number; // Scroll distance to trigger hide
@@ -12,8 +12,7 @@ interface UseScrollHideOptions {
 export function useScrollHide(options: UseScrollHideOptions = {}) {
   const { threshold = 50, hideDelay = 100, debounceMs = 50 } = options;
   const [isHidden, setIsHidden] = useState(false);
-  const [lastScrollY, setLastScrollY] = useState(0);
-  const [scrollTimeout, setScrollTimeout] = useState<NodeJS.Timeout | null>(null);
+  const lastScrollYRef = useRef(0);
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout | null = null;
@@ -28,8 +27,8 @@ export function useScrollHide(options: UseScrollHideOptions = {}) {
 
       // Debounce scroll handling
       timeoutId = setTimeout(() => {
-        // Calculate scroll direction
-        const scrollDirection = currentScrollY - lastScrollY;
+        // Calculate scroll direction using ref to avoid re-runs
+        const scrollDirection = currentScrollY - lastScrollYRef.current;
 
         // Hide nav when scrolling down past threshold
         if (scrollDirection > threshold && currentScrollY > 100) {
@@ -40,10 +39,8 @@ export function useScrollHide(options: UseScrollHideOptions = {}) {
           setIsHidden(false);
         }
 
-        setLastScrollY(currentScrollY);
+        lastScrollYRef.current = currentScrollY;
       }, debounceMs);
-
-      setScrollTimeout(timeoutId);
     };
 
     // Add scroll listener with passive option for better performance
@@ -54,11 +51,10 @@ export function useScrollHide(options: UseScrollHideOptions = {}) {
       if (timeoutId) {
         clearTimeout(timeoutId);
       }
-      if (scrollTimeout) {
-        clearTimeout(scrollTimeout);
-      }
     };
-  }, [lastScrollY, threshold, debounceMs, scrollTimeout]);
+    // Only re-create effect if threshold or debounceMs changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [threshold, debounceMs]);
 
   return { isHidden, setIsHidden };
 }
@@ -70,7 +66,7 @@ export function useScrollHide(options: UseScrollHideOptions = {}) {
 export function useTabBarHide(options: UseScrollHideOptions = {}) {
   const { threshold = 30, hideDelay = 150 } = options;
   const [isHidden, setIsHidden] = useState(false);
-  const [lastScrollY, setLastScrollY] = useState(0);
+  const lastScrollYRef = useRef(0);
 
   useEffect(() => {
     let isScrollingDown = false;
@@ -78,7 +74,7 @@ export function useTabBarHide(options: UseScrollHideOptions = {}) {
 
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      const scrollDirection = currentScrollY - lastScrollY;
+      const scrollDirection = currentScrollY - lastScrollYRef.current;
 
       // Detect scroll direction
       if (Math.abs(scrollDirection) > 5) {
@@ -98,7 +94,7 @@ export function useTabBarHide(options: UseScrollHideOptions = {}) {
           setIsHidden(false);
         }
 
-        setLastScrollY(currentScrollY);
+        lastScrollYRef.current = currentScrollY;
       }, hideDelay);
     };
 
@@ -110,7 +106,9 @@ export function useTabBarHide(options: UseScrollHideOptions = {}) {
         clearTimeout(timeoutId);
       }
     };
-  }, [lastScrollY, threshold, hideDelay]);
+    // Only re-create effect if threshold or hideDelay changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [threshold, hideDelay]);
 
   return { isHidden };
 }

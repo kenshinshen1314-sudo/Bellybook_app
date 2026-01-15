@@ -61,15 +61,15 @@ export function useMeals(userId: string = DEFAULT_USER_ID): UseMealsResult {
     setError(null);
 
     try {
-      // Convert base64 to Blob for offline storage
-      const imageBlob = await fetch(imageUrl).then(r => r.blob());
-
-      // Generate thumbnail for list view
+      // Generate thumbnail for list view directly from base64 URL
       let thumbnailUrl = imageUrl;
       try {
+        // Convert base64 to Blob for thumbnail generation
+        const imageBlob = await fetch(imageUrl).then(r => r.blob());
         thumbnailUrl = await generateThumbnail(imageBlob, 200, 200, 0.7);
+        console.log('[useMeals] Thumbnail generated successfully, length:', thumbnailUrl?.length);
       } catch (thumbError) {
-        console.warn('[useMeals] Failed to generate thumbnail:', thumbError);
+        console.warn('[useMeals] Failed to generate thumbnail, using original:', thumbError);
         // Use original URL as fallback
       }
 
@@ -77,7 +77,6 @@ export function useMeals(userId: string = DEFAULT_USER_ID): UseMealsResult {
         id: generateId('meal'),
         userId,
         imageUrl,
-        imageBlob,
         thumbnailUrl, // Store thumbnail URL
         analysis: {
           foodName: analysis.foodName || '未知食物',
@@ -105,6 +104,15 @@ export function useMeals(userId: string = DEFAULT_USER_ID): UseMealsResult {
         updatedAt: new Date().toISOString(),
         isSynced: false,
       };
+
+      // Debug log before saving
+      console.log('[useMeals] Saving meal with images:', {
+        id: newMeal.id,
+        imageUrlPrefix: imageUrl?.substring(0, 50),
+        thumbnailUrlPrefix: thumbnailUrl?.substring(0, 50),
+        imageUrlLength: imageUrl?.length,
+        thumbnailUrlLength: thumbnailUrl?.length,
+      });
 
       const mealId = await meals.add(newMeal);
 
@@ -222,14 +230,22 @@ export async function saveMeal(
   mealType?: string,
   notes?: string
 ): Promise<string> {
-  // Convert base64 to Blob
-  const imageBlob = await fetch(imageUrl).then(r => r.blob());
+  // Generate thumbnail for list view
+  let thumbnailUrl = imageUrl;
+  try {
+    // Convert base64 to Blob for thumbnail generation
+    const imageBlob = await fetch(imageUrl).then(r => r.blob());
+    thumbnailUrl = await generateThumbnail(imageBlob, 200, 200, 0.7);
+    console.log('[saveMeal] Thumbnail generated successfully, length:', thumbnailUrl?.length);
+  } catch (thumbError) {
+    console.warn('[saveMeal] Failed to generate thumbnail, using original:', thumbError);
+  }
 
   const newMeal: Meal = {
     id: generateId('meal'),
     userId,
     imageUrl,
-    imageBlob,
+    thumbnailUrl,
     analysis: {
       foodName: analysis.foodName || '未知食物',
       cuisine: analysis.cuisine,
