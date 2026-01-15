@@ -10,6 +10,7 @@ interface TabPassportProps {
   lang: Language;
   theme: Theme;
   refreshTrigger?: number;
+  onCuisineClick?: (cuisine: string) => void;
 }
 
 // Cuisine colors for visual variety
@@ -56,10 +57,9 @@ const CUISINE_ICONS: Record<string, string> = {
   '皖菜': '🍖',
 };
 
-const TabPassport: React.FC<TabPassportProps> = ({ lang, theme, refreshTrigger }) => {
+const TabPassport: React.FC<TabPassportProps> = ({ lang, theme, refreshTrigger, onCuisineClick }) => {
   const { meals, isLoading, refresh } = useMeals();
   const { showSkeleton } = useMinDelay(isLoading, 300);
-  const [selectedCuisine, setSelectedCuisine] = useState<string | null>(null);
 
   // Refresh data when refreshTrigger changes
   useEffect(() => {
@@ -185,7 +185,7 @@ const TabPassport: React.FC<TabPassportProps> = ({ lang, theme, refreshTrigger }
       {/* Cuisine Grid */}
       <div>
         <h2 className={`text-lg font-semibold mb-3 ${textTitle}`}>
-          {lang === Language.ZH ? '已解锁' : 'Unlocked'}
+          {lang === Language.ZH ? '我的菜系' : 'My Cuisines'}
         </h2>
 
         {cuisineData.length > 0 ? (
@@ -196,9 +196,15 @@ const TabPassport: React.FC<TabPassportProps> = ({ lang, theme, refreshTrigger }
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.05 }}
-                onClick={() => setSelectedCuisine(selectedCuisine === cuisine.name ? null : cuisine.name)}
               >
-                <Card theme={theme} className={`${cardBg} p-4 cursor-pointer transition-transform hover:scale-105`}>
+                <Card
+                  theme={theme}
+                  className={`${cardBg} p-4 cursor-pointer transition-transform hover:scale-105`}
+                  onClick={() => {
+                    console.log('TabPassport: Clicked cuisine', cuisine.name);
+                    onCuisineClick?.(cuisine.name);
+                  }}
+                >
                   {/* Cuisine Icon */}
                   <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${cuisine.color} flex items-center justify-center text-2xl mb-3`}>
                     {CUISINE_ICONS[cuisine.name] || '🍽️'}
@@ -213,33 +219,6 @@ const TabPassport: React.FC<TabPassportProps> = ({ lang, theme, refreshTrigger }
                   <div className={`text-xs ${textSecondary} flex items-center space-x-2`}>
                     <span>{cuisine.count} {lang === Language.ZH ? '餐' : 'meals'}</span>
                   </div>
-
-                  {/* First tasted date */}
-                  <div className={`text-xs ${textTertiary} mt-1 flex items-center`}>
-                    <Calendar size={10} className="mr-1" />
-                    {new Date(cuisine.firstMealAt).toLocaleDateString(
-                      lang === Language.ZH ? 'zh-CN' : 'en-US',
-                      { month: 'short', day: 'numeric' }
-                    )}
-                  </div>
-
-                  {/* Expansion (when selected) */}
-                  {selectedCuisine === cuisine.name && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      className={`mt-3 pt-3 border-t ${theme === 'dark' ? 'border-white/10' : 'border-gray-200'}`}
-                    >
-                      <div className={`text-xs ${textTertiary}`}>
-                        {lang === Language.ZH ? '最近记录' : 'Recent meals'}:
-                      </div>
-                      {cuisine.meals.slice(0, 3).map(meal => (
-                        <div key={meal.id} className={`text-xs ${textSecondary} truncate mt-1`}>
-                          • {meal.analysis.foodName}
-                        </div>
-                      ))}
-                    </motion.div>
-                  )}
                 </Card>
               </motion.div>
             ))}

@@ -47,6 +47,7 @@ export interface AnalysisResult {
   };
   poeticDescription?: string;
   nutritionCommentary?: string;
+  historicalBackground?: string;
 }
 
 export enum AppView {
@@ -65,7 +66,10 @@ export enum AppView {
   // Social Views
   SOCIAL_EXPERTS_LIST = 'SOCIAL_EXPERTS_LIST',
   SOCIAL_RANKING_LIST = 'SOCIAL_RANKING_LIST',
-  SOCIAL_USER_DETAIL = 'SOCIAL_USER_DETAIL'
+  SOCIAL_USER_DETAIL = 'SOCIAL_USER_DETAIL',
+  // Passport Sub-views
+  PASSPORT_CUISINE_DETAIL = 'PASSPORT_CUISINE_DETAIL',
+  PASSPORT_DISH_DETAIL = 'PASSPORT_DISH_DETAIL'
 }
 
 export const TEXT = {
@@ -159,6 +163,13 @@ export const TEXT = {
     cuisines: '菜系',
     unlocked: '解锁',
     account_title: '帐号',
+    // Passport Details
+    tasted_count: '已品尝次数',
+    tasted_times: '品尝', // Combined with number: "品尝 1 次"
+    times: '次',
+    history_source: '历史渊源',
+    tasting_records: '品尝记录',
+    total_calories: '卡路里总数',
     // Notification & Privacy (Detailed)
     notify_header: '通知设置',
     notify_sub: '设置用餐提醒时间',
@@ -280,6 +291,13 @@ export const TEXT = {
     cuisines: 'Cuisines',
     unlocked: 'Unlocked',
     account_title: 'Account',
+    // Passport Details
+    tasted_count: 'Times Tasted',
+    tasted_times: 'Tasted', // Combined with number: "Tasted 1 time"
+    times: 'times',
+    history_source: 'History & Origin',
+    tasting_records: 'Tasting Records',
+    total_calories: 'Total Calories',
     // Notification & Privacy
     notify_header: 'Notification Settings',
     notify_sub: 'Set meal reminder times',

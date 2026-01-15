@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Share2, Edit3, Trash2, Check, Loader2 } from 'lucide-react';
 import { Language, Theme, TEXT } from '../types';
 import type { Meal } from '../db';
+import { generateDishHistory } from '../services/geminiService';
 
 interface MealDetailModalProps {
     meal: Meal | null;
@@ -100,36 +101,90 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
     const [editFoodName, setEditFoodName] = useState('');
     const [editDescription, setEditDescription] = useState('');
     const [isSaving, setIsSaving] = useState(false);
+    const [isGeneratingHistory, setIsGeneratingHistory] = useState(false);
+    const [localMeal, setLocalMeal] = useState<Meal | null>(null);
+    const generatingHistoryRef = useRef<Set<string>>(new Set());
     const t = TEXT[lang];
 
+    // Sync local meal state when prop changes
+    useEffect(() => {
+        setLocalMeal(meal);
+    }, [meal]);
+
     // Reset edit state when meal changes
-    React.useEffect(() => {
+    useEffect(() => {
         if (meal) {
             setEditFoodName(meal.analysis.foodName || '');
             setEditDescription(meal.analysis.description || '');
         }
     }, [meal]);
 
-    if (!meal) return null;
+    // Generate historical background if missing
+    useEffect(() => {
+        const generateHistoricalBackground = async () => {
+            if (!localMeal || !isOpen || !onUpdate) return;
 
-    const date = new Date(meal.createdAt);
+            // Check if historical background exists
+            if (localMeal.analysis.historicalBackground) return;
+
+            const mealId = localMeal.id;
+
+            // Check if we're already generating for this meal
+            if (generatingHistoryRef.current.has(mealId)) return;
+
+            generatingHistoryRef.current.add(mealId);
+            setIsGeneratingHistory(true);
+
+            try {
+                const foodName = localMeal.analysis.foodName || (lang === Language.ZH ? '这道菜' : 'This dish');
+                const historicalBackground = await generateDishHistory(foodName, lang);
+
+                // Update the meal with generated historical background
+                const updatedMeal: Meal = {
+                    ...localMeal,
+                    analysis: {
+                        ...localMeal.analysis,
+                        historicalBackground,
+                    },
+                    updatedAt: new Date().toISOString(),
+                };
+
+                // Save to database
+                await onUpdate(updatedMeal);
+
+                // Update local state immediately for display
+                setLocalMeal(updatedMeal);
+            } catch (error) {
+                console.error('Failed to generate historical background:', error);
+            } finally {
+                setIsGeneratingHistory(false);
+                generatingHistoryRef.current.delete(mealId);
+            }
+        };
+
+        generateHistoricalBackground();
+    }, [localMeal, isOpen, onUpdate, lang]);
+
+    if (!localMeal) return null;
+
+    const date = new Date(localMeal.createdAt);
     const dayOfWeek = lang === Language.ZH ? DAYS_ZH[date.getDay()] : DAYS_EN[date.getDay()];
     const dateStr = lang === Language.ZH
         ? `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`
         : `${date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`;
     const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 
-    const estimatedPrice = estimateMealPrice(meal);
-    const totalCalories = meal.analysis.nutrition?.calories || 0;
+    const estimatedPrice = estimateMealPrice(localMeal);
+    const totalCalories = localMeal.analysis.nutrition?.calories || 0;
 
     // Use AI description if available, otherwise fallback to local generator
-    const poeticDescription = meal.analysis.poeticDescription || generatePoeticDescription(meal, lang);
+    const poeticDescription = localMeal.analysis.poeticDescription || generatePoeticDescription(localMeal, lang);
 
     // Generate personalized nutrition commentary if not provided by AI
-    const nutritionCommentary = meal.analysis.nutritionCommentary || (() => {
-      const nutrition = meal.analysis.nutrition || { calories: 0, protein: 0, fat: 0, carbohydrates: 0 };
-      const ingredients = meal.analysis.ingredients || [];
-      const foodName = meal.analysis.foodName || (lang === Language.ZH ? "这道菜" : "This dish");
+    const nutritionCommentary = localMeal.analysis.nutritionCommentary || (() => {
+      const nutrition = localMeal.analysis.nutrition || { calories: 0, protein: 0, fat: 0, carbohydrates: 0 };
+      const ingredients = localMeal.analysis.ingredients || [];
+      const foodName = localMeal.analysis.foodName || (lang === Language.ZH ? "这道菜" : "This dish");
       const commentaryParts = [];
 
       if (lang === Language.ZH) {
@@ -214,7 +269,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
 
     const handleDeleteClick = () => {
         if (isDeleting) {
-            onDelete?.(meal);
+            onDelete?.(localMeal);
         } else {
             setIsDeleting(true);
             setTimeout(() => setIsDeleting(false), 3000); // Reset after 3s if not confirmed
@@ -223,14 +278,14 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
 
     const handleStartEdit = () => {
         setIsEditing(true);
-        setEditFoodName(meal.analysis.foodName || '');
-        setEditDescription(meal.analysis.description || '');
+        setEditFoodName(localMeal.analysis.foodName || '');
+        setEditDescription(localMeal.analysis.description || '');
     };
 
     const handleCancelEdit = () => {
         setIsEditing(false);
-        setEditFoodName(meal.analysis.foodName || '');
-        setEditDescription(meal.analysis.description || '');
+        setEditFoodName(localMeal.analysis.foodName || '');
+        setEditDescription(localMeal.analysis.description || '');
     };
 
     const handleSaveEdit = async () => {
@@ -239,10 +294,10 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
         setIsSaving(true);
         try {
             const updatedMeal: Meal = {
-                ...meal,
+                ...localMeal,
                 analysis: {
-                    ...meal.analysis,
-                    foodName: editFoodName.trim() || meal.analysis.foodName,
+                    ...localMeal.analysis,
+                    foodName: editFoodName.trim() || localMeal.analysis.foodName,
                     description: editDescription.trim(),
                 },
                 updatedAt: new Date().toISOString(),
@@ -251,7 +306,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
             await onUpdate(updatedMeal);
             setIsEditing(false);
         } catch (error) {
-            console.error('Failed to update meal:', error);
+            console.error('Failed to update localMeal:', error);
         } finally {
             setIsSaving(false);
         }
@@ -324,15 +379,15 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                                             </div>
                                             <div className="flex justify-between items-center">
                                                 <span className={`text-xs ${secondaryText}`}>{lang === Language.ZH ? '蛋白质' : 'Protein'}</span>
-                                                <span className={`text-sm font-medium ${textColor}`}>{Math.round(meal.analysis.nutrition?.protein || 0)}g</span>
+                                                <span className={`text-sm font-medium ${textColor}`}>{Math.round(localMeal.analysis.nutrition?.protein || 0)}g</span>
                                             </div>
                                             <div className="flex justify-between items-center">
                                                 <span className={`text-xs ${secondaryText}`}>{lang === Language.ZH ? '脂肪' : 'Fat'}</span>
-                                                <span className={`text-sm font-medium ${textColor}`}>{(meal.analysis.nutrition?.fat || 0).toFixed(1)}g</span>
+                                                <span className={`text-sm font-medium ${textColor}`}>{(localMeal.analysis.nutrition?.fat || 0).toFixed(1)}g</span>
                                             </div>
                                             <div className="flex justify-between items-center">
                                                 <span className={`text-xs ${secondaryText}`}>{lang === Language.ZH ? '碳水' : 'Carbs'}</span>
-                                                <span className={`text-sm font-medium ${textColor}`}>{Math.round(meal.analysis.nutrition?.carbohydrates || 0)}g</span>
+                                                <span className={`text-sm font-medium ${textColor}`}>{Math.round(localMeal.analysis.nutrition?.carbohydrates || 0)}g</span>
                                             </div>
                                         </div>
                                     </motion.div>
@@ -357,8 +412,8 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                                         onClick={() => setShowNutritionCard(false)}
                                     >
                                         <img
-                                            src={meal.thumbnailUrl || meal.imageUrl}
-                                            alt={meal.analysis.foodName}
+                                            src={localMeal.thumbnailUrl || localMeal.imageUrl}
+                                            alt={localMeal.analysis.foodName}
                                             className="w-full h-full object-cover"
                                         />
                                     </motion.div>
@@ -379,7 +434,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                                         />
                                     ) : (
                                         <h2 className={`text-2xl font-bold ${textColor}`}>
-                                            {meal.analysis.foodName}
+                                            {localMeal.analysis.foodName}
                                         </h2>
                                     )}
                                     {!isEditing && onUpdate && (
@@ -413,7 +468,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                             {/* Poetic Description - Editable */}
                             <div className="px-6 py-6">
                                 <h3 className={`text-base font-semibold mb-3 ${textColor}`}>
-                                    {lang === Language.ZH ? `暮光中的${meal.analysis.foodName}私语` : `Whispers of ${meal.analysis.foodName}`}
+                                    {lang === Language.ZH ? `暮光中的${localMeal.analysis.foodName}私语` : `Whispers of ${localMeal.analysis.foodName}`}
                                 </h3>
                                 {isEditing ? (
                                     <textarea
@@ -431,7 +486,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
 
                             {/* Ingredient Cards - Sticky Note Style */}
                             <div className="px-6 space-y-4">
-                                {(meal.analysis.ingredients || []).slice(0, 3).map((ingredient, idx) => {
+                                {(localMeal.analysis.ingredients || []).slice(0, 3).map((ingredient, idx) => {
                                     const stickyColors = [
                                         { bg: 'bg-[#FFF9C4]' },
                                         { bg: 'bg-[#FFCCBC]' },
@@ -466,7 +521,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                                                 </span>
                                                 <span className="text-lg">{getIngredientIcon(ingredient.name)}</span>
                                                 <span className={`ml-auto text-xs px-2 py-0.5 rounded ${theme === 'dark' ? 'bg-black/20 text-gray-300' : 'bg-black/10 text-gray-700'}`}>
-                                                    {meal.analysis.cuisine || (lang === Language.ZH ? '中国' : 'Chinese')}
+                                                    {localMeal.analysis.cuisine || (lang === Language.ZH ? '中国' : 'Chinese')}
                                                 </span>
                                                 <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                                                     {ingredient.percentage || 1} {lang === Language.ZH ? '份' : 'portion'}
@@ -491,6 +546,27 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                                     {nutritionCommentary}
                                 </p>
                             </div>
+
+                            {/* Historical Background Section */}
+                            {(localMeal.analysis.historicalBackground || isGeneratingHistory) && (
+                                <div className="px-6 py-6">
+                                    <h3 className={`text-base font-semibold mb-3 ${textColor}`}>
+                                        {t.history_source || (lang === Language.ZH ? '历史渊源' : 'History & Origin')}
+                                    </h3>
+                                    {isGeneratingHistory ? (
+                                        <div className="flex items-center gap-2">
+                                            <Loader2 size={16} className="animate-spin" />
+                                            <span className={`text-sm ${secondaryText}`}>
+                                                {lang === Language.ZH ? '正在生成历史渊源...' : 'Generating history...'}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <p className={`text-sm leading-relaxed ${secondaryText}`}>
+                                            {localMeal.analysis.historicalBackground}
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         {/* Bottom Action Buttons */}
@@ -533,7 +609,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                                     {/* Share Button */}
                                     <motion.button
                                         whileTap={{ scale: 0.95 }}
-                                        onClick={() => onShare?.(meal)}
+                                        onClick={() => onShare?.(localMeal)}
                                         className={`flex items-center justify-center px-6 py-2.5 rounded-full border ${theme === 'dark' ? 'border-gray-600 text-white' : 'border-gray-300 text-gray-800'}`}
                                     >
                                         <Share2 size={16} className="mr-2" />

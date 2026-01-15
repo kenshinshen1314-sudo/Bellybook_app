@@ -45,6 +45,10 @@ export const analyzeFoodImage = async (base64Image: string, lang: Language): Pro
        - Provide actionable suggestions based on the meal's nutritional profile
        - Make it conversational and encouraging, like a nutritionist friend
        - AVOID generic templates - customize based on what you actually see in the image
+    7. **HISTORICAL BACKGROUND**: Write a brief historical/cultural introduction for this dish (1-2 sentences).
+       - Include origin, cultural significance, or interesting facts
+       - Keep it concise but engaging
+       - If it's a generic home-style dish, focus on its role in daily life or cooking traditions
 
     Provide the following details in JSON format:
     1. foodName: A short, appetizing title
@@ -55,9 +59,10 @@ export const analyzeFoodImage = async (base64Image: string, lang: Language): Pro
     6. description: Comprehensive factual description
     7. poeticDescription: The poetic description mentioned above
     8. nutritionCommentary: The personalized nutrition analysis mentioned above
-    9. plating: Visual presentation description
-    10. sensory: Colors, textures, aroma
-    11. container: Container description
+    9. historicalBackground: The historical/cultural introduction mentioned above
+    10. plating: Visual presentation description
+    11. sensory: Colors, textures, aroma
+    12. container: Container description
   `;
 
   try {
@@ -111,6 +116,7 @@ export const analyzeFoodImage = async (base64Image: string, lang: Language): Pro
             description: { type: Type.STRING },
             poeticDescription: { type: Type.STRING },
             nutritionCommentary: { type: Type.STRING },
+            historicalBackground: { type: Type.STRING },
             plating: { type: Type.STRING },
             sensory: { type: Type.STRING },
             container: { type: Type.STRING }
@@ -147,6 +153,13 @@ export const analyzeFoodImage = async (base64Image: string, lang: Language): Pro
       result.poeticDescription = lang === Language.ZH
         ? "美食与爱，不可辜负。"
         : "Love and food are meant to be cherished.";
+    }
+
+    // Fallback for historicalBackground if not provided
+    if (!result.historicalBackground) {
+      result.historicalBackground = lang === Language.ZH
+        ? `${result.foodName || '这道菜'}是${result.cuisine || '传统'}的经典代表。`
+        : `${result.foodName || 'This dish'} is a classic representative of ${result.cuisine || 'traditional'} cuisine.`;
     }
 
     // Generate personalized nutrition commentary if not provided by AI
@@ -274,6 +287,9 @@ export const analyzeFoodImage = async (base64Image: string, lang: Language): Pro
       nutritionCommentary: lang === Language.ZH
         ? "这道菜蛋白质含量很足，花生提供了优质脂肪。不过油脂略多，建议搭配一道清淡的蔬菜汤，平衡一下这一餐的油腻感。"
         : "This dish is packed with protein, and peanuts provide healthy fats. However, it's a bit oily, so pairing it with a light vegetable soup would verify balance the meal.",
+      historicalBackground: lang === Language.ZH
+        ? "宫保鸡丁源自清朝四川总督丁宝桢的家厨创制，因丁宝桢曾被封为\"宫保\"而得名。这道菜融合了川菜的麻辣与鲁菜的鲜香，是中国最具国际影响力的菜品之一。"
+        : "Kung Pao Chicken originated from the kitchen of Ding Baozhen, a Qing Dynasty governor-general of Sichuan who was granted the title 'Palace Guardian' (Gongbao). This dish combines Sichuan's spicy flavors with Shandong's savory style, becoming one of China's most internationally influential dishes.",
       plating: lang === Language.ZH
         ? "盛放在白色圆盘中，鸡肉与花生米均匀分布，干辣椒点缀其间，色泽红亮诱人。"
         : "Served on a white round plate, chicken and peanuts evenly distributed with dried chili peppers.",
@@ -284,5 +300,36 @@ export const analyzeFoodImage = async (base64Image: string, lang: Language): Pro
         ? "白色陶瓷圆盘，边缘略带弧度"
         : "White ceramic round plate with slightly curved edges",
     };
+  }
+};
+
+export const generateDishHistory = async (dishName: string, lang: Language): Promise<string> => {
+  if (!apiKey) return lang === Language.ZH ? "未配置API Key，无法通过AI生成历史渊源。" : "API Key missing.";
+
+  const ai = new GoogleGenAI({ apiKey });
+  const prompt = `
+    You are a culinary historian. Write a brief, engaging historical introduction for the dish "${dishName}".
+
+    Language: ${lang === Language.ZH ? 'Simplified Chinese (简体中文)' : 'English'}
+    Length: 80-120 words (1 paragraph).
+    Content: Origin, cultural significance, and key characteristics.
+    Tone: Sophisticated yet accessible, suitable for a "Passport" collection app.
+
+    Output ONLY the text, no markdown formatting or headings.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: [{ role: 'user', parts: [{ text: prompt }] }]
+    });
+
+    const text = response.text;
+    return text || (lang === Language.ZH ? "暂无历史渊源信息。" : "No historical information available.");
+  } catch (error) {
+    console.error("Gemini History Generation Error:", error);
+    return lang === Language.ZH
+      ? "AI服务暂时不可用，无法获取历史渊源。"
+      : "AI service temporarily unavailable.";
   }
 };

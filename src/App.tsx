@@ -29,6 +29,11 @@ const Tab4Social = React.lazy(() => import('./views/tabs/Tab4Social'));
 const LeaderboardPage = React.lazy(() => import('./views/SocialSubViews').then(m => ({ default: m.LeaderboardPage })));
 const UserDetailPage = React.lazy(() => import('./views/SocialSubViews').then(m => ({ default: m.UserDetailPage })));
 
+// Import Passport Sub-views
+import { CuisineDetail } from './views/subviews/CuisineDetail';
+import { DishDetail } from './views/subviews/DishDetail';
+import { useMeals } from './hooks/useMeals';
+
 export default function App() {
   // Network status
   const isOnline = useOnline();
@@ -61,6 +66,13 @@ export default function App() {
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [showConflictModal, setShowConflictModal] = useState(false);
   const [showLimitOverlay, setShowLimitOverlay] = useState(false);
+  const [selectedCuisine, setSelectedCuisine] = useState<string | null>(null);
+  const [selectedDish, setSelectedDish] = useState<string | null>(null);
+
+  console.log('App Render:', { currentView, selectedCuisine, selectedDish });
+
+  // Global meals data for sub-views
+  const { meals } = useMeals();
 
   // Swipe navigation for tabs
   const { swipeHandlers, canSwipeLeft, canSwipeRight } = useTabSwipeNavigation({
@@ -449,6 +461,41 @@ export default function App() {
     );
   }
 
+  // 1c. Passport Sub-Views
+  if (currentView === AppView.PASSPORT_CUISINE_DETAIL && selectedCuisine) {
+    return (
+      <CuisineDetail
+        cuisine={selectedCuisine}
+        meals={meals}
+        lang={language}
+        theme={theme}
+        onBack={() => {
+          setCurrentView(AppView.MAIN_TABS);
+          setSelectedCuisine(null);
+        }}
+        onDishClick={(dishName) => {
+          setSelectedDish(dishName);
+          setCurrentView(AppView.PASSPORT_DISH_DETAIL);
+        }}
+      />
+    );
+  }
+
+  if (currentView === AppView.PASSPORT_DISH_DETAIL && selectedDish) {
+    return (
+      <DishDetail
+        dishName={selectedDish}
+        meals={meals}
+        lang={language}
+        theme={theme}
+        onBack={() => {
+          setCurrentView(AppView.PASSPORT_CUISINE_DETAIL);
+          setSelectedDish(null);
+        }}
+      />
+    );
+  }
+
   // 2. Profile Views
   if (currentView.startsWith('PROFILE')) {
     const isProfileHome = currentView === AppView.PROFILE_HOME;
@@ -834,7 +881,16 @@ export default function App() {
               )}
               {activeTab === 1 && (
                 <PullToRefresh onRefresh={handleRefresh} language={language}>
-                  <TabPassport lang={language} theme={theme} refreshTrigger={refreshTrigger} />
+                  <TabPassport
+                    lang={language}
+                    theme={theme}
+                    refreshTrigger={refreshTrigger}
+                    onCuisineClick={(cuisine) => {
+                      console.log('App: Navigating to CuisineDetail', cuisine);
+                      setSelectedCuisine(cuisine);
+                      setCurrentView(AppView.PASSPORT_CUISINE_DETAIL);
+                    }}
+                  />
                 </PullToRefresh>
               )}
               {activeTab === 2 && (
