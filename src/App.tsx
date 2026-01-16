@@ -85,7 +85,15 @@ export default function App() {
   console.log('App Render:', { currentView, selectedCuisine, selectedDish, userId, isAuthenticated, user });
 
   // Global meals data for sub-views - pass userId to get correct user's meals
-  const { meals } = useMeals(userId);
+  const { meals, refresh: refreshMeals } = useMeals(userId);
+
+  // Refresh meals when refreshTrigger changes
+  useEffect(() => {
+    if (refreshTrigger > 0) {
+      console.log('[App] Refreshing meals due to refreshTrigger:', refreshTrigger);
+      refreshMeals();
+    }
+  }, [refreshTrigger, refreshMeals]);
 
   // Swipe navigation for tabs
   const { swipeHandlers, canSwipeLeft, canSwipeRight } = useTabSwipeNavigation({
