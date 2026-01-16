@@ -10,6 +10,7 @@ import { Sun, CloudSun, Moon, Coffee, ChevronLeft, ChevronRight, Calendar, Flame
 import { useMeals } from '@/hooks/useMeals';
 import { useToastNotification } from '@/contexts/ToastContext';
 import { useMinDelay } from '@/hooks/useMinDelay';
+import { translateCuisine } from '../../utils/translationUtils';
 
 interface Tab2HistoryProps {
   lang: Language;
@@ -408,14 +409,14 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
     // Convert to array and sort by count (descending)
     const data = Array.from(cuisineCountMap.entries())
       .map(([cuisine, count]) => ({
-        cuisine,
+        cuisine: translateCuisine(cuisine, lang),
         count,
       }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 10); // Top 10 cuisines
 
     return data;
-  }, [meals]);
+  }, [meals, lang]);
 
   // Cuisine icon mapping
   const getCuisineIcon = (cuisineName: string): string => {

@@ -4,6 +4,7 @@ import { Card } from './ui/card';
 import { Flame, Utensils, Wheat, Droplet } from 'lucide-react';
 import { Language } from '@/types';
 import { type MealAnalysis } from '@/db';
+import { translateDishName, translateCuisine } from '@/utils/translationUtils';
 
 interface MealAnalysisCardProps {
   imageUrl: string;
@@ -18,8 +19,11 @@ interface MealAnalysisCardProps {
  */
 export function MealAnalysisCard({ imageUrl, analysis, language, theme }: MealAnalysisCardProps) {
   const nutrition = analysis.nutrition || { calories: 0, protein: 0, fat: 0, carbohydrates: 0 };
-  const foodName = analysis.foodName || (language === 'zh' ? '未知食物' : 'Unknown Food');
-  const cuisine = analysis.cuisine;
+  const foodName = translateDishName(
+    analysis.foodName || (language === 'zh' ? '未知食物' : 'Unknown Food'),
+    language
+  );
+  const cuisine = translateCuisine(analysis.cuisine || '', language);
   const description = analysis.description;
   const suggestions = analysis.suggestions || [];
 

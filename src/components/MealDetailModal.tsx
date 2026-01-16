@@ -4,6 +4,7 @@ import { X, Share2, Edit3, Trash2, Check, Loader2 } from 'lucide-react';
 import { Language, Theme, TEXT } from '../types';
 import type { Meal } from '../db';
 import { generateDishHistory } from '../services/geminiService';
+import { translateCuisine, translateIngredient, translateDishName, translateDescription, translateNutritionAnalysis, translateHistoricalBackground } from '../utils/translationUtils';
 
 interface MealDetailModalProps {
     meal: Meal | null;
@@ -434,7 +435,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                                         />
                                     ) : (
                                         <h2 className={`text-2xl font-bold ${textColor}`}>
-                                            {localMeal.analysis.foodName}
+                                            {translateDishName(localMeal.analysis.foodName || '', lang)}
                                         </h2>
                                     )}
                                     {!isEditing && onUpdate && (
@@ -517,20 +518,18 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                                         >
                                             <div className="flex items-center gap-2 mb-2">
                                                 <span className={`font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'}`}>
-                                                    {ingredient.name}
+                                                    {translateIngredient(ingredient.name, lang)}
                                                 </span>
                                                 <span className="text-lg">{getIngredientIcon(ingredient.name)}</span>
                                                 <span className={`ml-auto text-xs px-2 py-0.5 rounded ${theme === 'dark' ? 'bg-black/20 text-gray-300' : 'bg-black/10 text-gray-700'}`}>
-                                                    {localMeal.analysis.cuisine || (lang === Language.ZH ? '中国' : 'Chinese')}
+                                                    {translateCuisine(localMeal.analysis.cuisine || (lang === Language.ZH ? '中国' : 'Chinese'), lang)}
                                                 </span>
                                                 <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                                                     {ingredient.percentage || 1} {lang === Language.ZH ? '份' : 'portion'}
                                                 </span>
                                             </div>
                                             <p className={`text-xs leading-relaxed ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
-                                                {ingredient.description || (lang === Language.ZH
-                                                    ? `${ingredient.name}是中国家常烹饪中常见的食材，营养丰富，风味独特。`
-                                                    : `${ingredient.name} is a common ingredient in home cooking, nutritious and flavorful.`)}
+                                                {ingredient.description || translateDescription(`${ingredient.name}是中国家常烹饪中常见的食材，营养丰富，风味独特。`, lang)}
                                             </p>
                                         </motion.div>
                                     );
@@ -543,7 +542,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                                     {lang === Language.ZH ? '本餐营养学分析' : 'Meal Nutrition Analysis'}
                                 </h3>
                                 <p className={`text-sm leading-relaxed ${secondaryText}`}>
-                                    {nutritionCommentary}
+                                    {translateNutritionAnalysis(nutritionCommentary, lang)}
                                 </p>
                             </div>
 
@@ -562,7 +561,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                                         </div>
                                     ) : (
                                         <p className={`text-sm leading-relaxed ${secondaryText}`}>
-                                            {localMeal.analysis.historicalBackground}
+                                            {translateHistoricalBackground(localMeal.analysis.historicalBackground, lang)}
                                         </p>
                                     )}
                                 </div>

@@ -9,6 +9,7 @@ import { useMinDelay } from '@/hooks/useMinDelay';
 import { LazyImage } from './LazyImage';
 import { type Meal } from '@/db';
 import { Language, Theme } from '@/types';
+import { translateDishName, translateCuisine } from '@/utils/translationUtils';
 
 interface MealListProps {
   meals: Meal[];
@@ -127,9 +128,11 @@ function MealItem({
   itemVariants,
 }: MealItemProps) {
   const nutrition = getNutritionSummary(meal);
-  const foodName = meal.analysis?.foodName ||
-    (language === Language.ZH ? '未知食物' : 'Unknown Food');
-  const cuisine = meal.analysis?.cuisine || '';
+  const foodName = translateDishName(
+    meal.analysis?.foodName || (language === Language.ZH ? '未知食物' : 'Unknown Food'),
+    language
+  );
+  const cuisine = translateCuisine(meal.analysis?.cuisine || '', language);
 
   // Get image URL - prefer thumbnail for list view, fallback to full image
   const displayImageUrl = meal.thumbnailUrl || meal.imageUrl || '';
