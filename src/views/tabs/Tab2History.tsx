@@ -1156,12 +1156,12 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
                 <BarChart data={weeklyTrendData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                   <defs>
                     <linearGradient id="proteinGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#3B82F6" stopOpacity={1} />
-                      <stop offset="100%" stopColor="#2563EB" stopOpacity={1} />
+                      <stop offset="0%" stopColor="#EF4444" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#DC2626" stopOpacity={1} />
                     </linearGradient>
                     <linearGradient id="fatGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                      <stop offset="0%" stopColor="#F97316" stopOpacity={1} />
-                      <stop offset="100%" stopColor="#EA580C" stopOpacity={1} />
+                      <stop offset="0%" stopColor="#F59E0B" stopOpacity={1} />
+                      <stop offset="100%" stopColor="#D97706" stopOpacity={1} />
                     </linearGradient>
                     <linearGradient id="carbsGradient" x1="0%" y1="0%" x2="0%" y2="100%">
                       <stop offset="0%" stopColor="#10B981" stopOpacity={1} />
@@ -1214,7 +1214,7 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
                 <BarChart
                   data={cuisineStatsData}
                   layout="vertical"
-                  margin={{ top: 5, right: 5, left: 5, bottom: 5 }}
+                  margin={{ top: 5, right: 5, left: 10, bottom: 5 }}
                   barCategoryGap={2}
                 >
                   <defs>
@@ -1257,20 +1257,14 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
                     dataKey="cuisine"
                     axisLine={false}
                     tickLine={false}
-                    tick={{ fill: axisColor, fontSize: 16, textAnchor: 'start', x: 0 }}
-                    width={30}
-                    tickFormatter={(value) => getCuisineIcon(value as string)}
+                    tick={{ fill: axisColor, fontSize: 11, textAnchor: 'end', x: -5 }}
+                    width={90}
                   />
                   <Bar
                     dataKey="count"
                     radius={[0, 4, 4, 0]}
                     barSize={16}
                   >
-                    <LabelList
-                      dataKey="cuisine"
-                      position="right"
-                      style={{ fill: theme === 'dark' ? '#fff' : '#000', fontSize: '12px', fontWeight: 'bold' }}
-                    />
                     {cuisineStatsData.map((entry, index) => {
                       // Warm orange gradient palette (5 levels) - appetizing colors
                       const gradients = [
