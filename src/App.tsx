@@ -436,6 +436,7 @@ export default function App() {
             setSelectedUser(user);
             setCurrentView(AppView.SOCIAL_USER_DETAIL);
           }}
+          userId={userId}
         />
       </Suspense>
     );
@@ -458,6 +459,7 @@ export default function App() {
             setSelectedUser(user);
             setCurrentView(AppView.SOCIAL_USER_DETAIL);
           }}
+          userId={userId}
         />
       </Suspense>
     );
@@ -1134,7 +1136,7 @@ export default function App() {
               )}
               {activeTab === 3 && (
                 <PullToRefresh onRefresh={handleRefresh} language={language}>
-                  <Tab4Social lang={language} theme={theme} onExpertsClick={() => setCurrentView(AppView.SOCIAL_EXPERTS_LIST)} onRankingClick={() => setCurrentView(AppView.SOCIAL_RANKING_LIST)} />
+                  <Tab4Social lang={language} theme={theme} onExpertsClick={() => setCurrentView(AppView.SOCIAL_EXPERTS_LIST)} onRankingClick={() => setCurrentView(AppView.SOCIAL_RANKING_LIST)} userId={userId} />
                 </PullToRefresh>
               )}
             </Suspense>
