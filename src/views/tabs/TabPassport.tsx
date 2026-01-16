@@ -11,6 +11,7 @@ interface TabPassportProps {
   theme: Theme;
   refreshTrigger?: number;
   onCuisineClick?: (cuisine: string) => void;
+  userId?: string;
 }
 
 // Cuisine colors for visual variety
@@ -57,8 +58,8 @@ const CUISINE_ICONS: Record<string, string> = {
   '皖菜': '🍖',
 };
 
-const TabPassport: React.FC<TabPassportProps> = ({ lang, theme, refreshTrigger, onCuisineClick }) => {
-  const { meals, isLoading, refresh } = useMeals();
+const TabPassport: React.FC<TabPassportProps> = ({ lang, theme, refreshTrigger, onCuisineClick, userId }) => {
+  const { meals, isLoading, refresh } = useMeals(userId);
   const { showSkeleton } = useMinDelay(isLoading, 300);
 
   // Refresh data when refreshTrigger changes

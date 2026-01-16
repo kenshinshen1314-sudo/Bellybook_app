@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .status {
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        #output {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            min-height: 100px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <h1>JavaScript 测试页面</h1>
+
+    <div class="status success">
+        ✅ 页面已成功加载
+    </div>
+
+    <div class="status info">
+        当前时间: <span id="time"></span>
+    </div>
+
+    <div>
+        <button onclick="testJavaScript()">测试 JavaScript</button>
+        <button onclick="testAlert()">测试 Alert</button>
+        <button onclick="checkLocalStorage()">检查 LocalStorage</button>
+        <button onclick="checkIndexedDB()">检查 IndexedDB</button>
+    </div>
+
+    <div id="output">点击上方按钮进行测试...</div>
+
+    <script>
+        // Update time on load
+        function updateTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleString('zh-CN');
+            document.getElementById('time').textContent = timeStr;
+            addOutput('✓ 时间更新功能正常');
+        }
+
+        // Test basic JavaScript
+        function testJavaScript() {
+            addOutput('=== JavaScript 基础测试 ===');
+            addOutput('✓ JavaScript 执行正常');
+            addOutput('✓ 当前时间: ' + new Date().toLocaleString('zh-CN'));
+            addOutput('✓ User Agent: ' + navigator.userAgent.substring(0, 50) + '...');
+        }
+
+        // Test alert
+        function testAlert() {
+            alert('✓ Alert 功能正常！\n\n如果你看到这个弹窗，说明 JavaScript 可以正常执行。');
+            addOutput('✓ Alert 测试完成');
+        }
+
+        // Check localStorage
+        function checkLocalStorage() {
+            addOutput('=== LocalStorage 测试 ===');
+            try {
+                localStorage.setItem('test_key', 'test_value_' + Date.now());
+                const value = localStorage.getItem('test_key');
+                localStorage.removeItem('test_key');
+                addOutput('✓ LocalStorage 正常工作');
+                addOutput('  写入: ' + value);
+            } catch (e) {
+                addOutput('✗ LocalStorage 错误: ' + e.message);
+            }
+        }
+
+        // Check IndexedDB
+        async function checkIndexedDB() {
+            addOutput('=== IndexedDB 测试 ===');
+            try {
+                const request = indexedDB.open('bellybook-db', 1);
+
+                request.onsuccess = function() {
+                    const db = request.result;
+                    addOutput('✓ IndexedDB 正常工作');
+                    addOutput('  数据库名称: ' + db.name);
+                    addOutput('  版本: ' + db.version);
+
+                    // Try to count meals
+                    if (db.objectStoreNames.contains('meals')) {
+                        const transaction = db.transaction('meals', 'readonly');
+                        const store = transaction.objectStore('meals');
+                        const countRequest = store.count();
+
+                        countRequest.onsuccess = function() {
+                            addOutput('  meals 表中记录数: ' + countRequest.result);
+                        };
+                    } else {
+                        addOutput('  meals 表不存在');
+                    }
+
+                    db.close();
+                };
+
+                request.onerror = function() {
+                    addOutput('✗ IndexedDB 错误: ' + request.error);
+                };
+            } catch (e) {
+                addOutput('✗ IndexedDB 错误: ' + e.message);
+            }
+        }
+
+        // Add text to output div
+        function addOutput(text) {
+            const output = document.getElementById('output');
+            output.textContent += text + '\n';
+        }
+
+        // Run on page load
+        updateTime();
+        addOutput('=== 页面加载完成 ===');
+        addOutput('提示: 如果你能看到按钮和输出区域，JavaScript 正在正常工作');
+    </script>
+</body>
+</html>

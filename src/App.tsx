@@ -9,15 +9,19 @@ import { PullToRefresh, useRefreshTimestamp } from './components/PullToRefresh';
 import { SyncStatus } from './components/SyncStatus';
 import { ConflictBanner } from './components/ConflictBanner';
 import { ConflictResolutionModal } from './components/ConflictResolutionModal';
+import { ProfileEdit } from './components/ProfileEdit';
 import { fadeInUp, pageTransition } from './lib/motion';
 import { useOnline } from './hooks/useOnline';
 import { useProfile } from './hooks/useProfile';
 import { useAnalyzeMeal } from './hooks/useAnalyzeMeal';
+import { DAILY_ANALYSIS_LIMIT } from './config';
 import { useTabSwipeNavigation, springConfig, tabVariants, getSlideDirection } from './hooks/useSwipeNavigation';
 import { useTabBarHide } from './hooks/useScrollHide';
-import { ChevronLeft, Check, Copy, Share2, MessageSquare, Star, Settings, X, ChevronRight, Clock, ArrowLeft, Zap, BookOpen, FileText, BarChart3, Edit3, Loader2, Cloud } from 'lucide-react';
+import { ChevronLeft, Check, Copy, Share2, MessageSquare, Star, Settings, X, ChevronRight, Clock, ArrowLeft, Zap, BookOpen, FileText, BarChart3, Edit3, Loader2, Cloud, LogOut } from 'lucide-react';
 import { LimitReachedOverlay } from './components/LimitReachedOverlay';
 import { getMealsByDateRange } from './hooks/useMeals';
+import { useAuth } from './contexts/AuthContext';
+import { LoginView, RegisterView } from './views/AuthViews';
 
 // Lazy load tabs for code splitting
 const Tab1Home = React.lazy(() => import('./views/tabs/Tab1Home'));
@@ -38,18 +42,26 @@ export default function App() {
   // Network status
   const isOnline = useOnline();
 
-  // User profile and settings (persisted to IndexedDB)
-  const { settings, isLoading: profileLoading, updateTheme, updateLanguage } = useProfile();
+  // Authentication
+  const { isAuthenticated, isLoading: authLoading, user, logout } = useAuth();
 
-  // Meal analysis workflow
+  // Get authenticated user ID, or fallback to 'current-user' for offline mode
+  const userId = user?.userId || 'current-user';
+
+  // User profile and settings (persisted to IndexedDB)
+  const { profile, settings, isLoading: profileLoading, updateTheme, updateLanguage, saveProfile } = useProfile(userId);
+
+  // Meal analysis workflow - userId is passed during save, not initialization
   const { state: analysisState, analyzeImage, saveAnalysis, reset: resetAnalysis } = useAnalyzeMeal();
 
   // Add a refresh trigger for meals
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Handle save and refresh
+  // Handle save and refresh - pass userId to saveAnalysis
   const handleSaveAndContinue = async () => {
-    await saveAnalysis();
+    console.log('[App] handleSaveAndContinue called, user:', user);
+    console.log('[App] userId to save:', user?.userId || null);
+    await saveAnalysis(user?.userId || null);
     // Trigger refresh for other pages
     setRefreshTrigger(prev => prev + 1);
     // Navigate back to home after a short delay
@@ -68,11 +80,12 @@ export default function App() {
   const [showLimitOverlay, setShowLimitOverlay] = useState(false);
   const [selectedCuisine, setSelectedCuisine] = useState<string | null>(null);
   const [selectedDish, setSelectedDish] = useState<string | null>(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
-  console.log('App Render:', { currentView, selectedCuisine, selectedDish });
+  console.log('App Render:', { currentView, selectedCuisine, selectedDish, userId, isAuthenticated, user });
 
-  // Global meals data for sub-views
-  const { meals } = useMeals();
+  // Global meals data for sub-views - pass userId to get correct user's meals
+  const { meals } = useMeals(userId);
 
   // Swipe navigation for tabs
   const { swipeHandlers, canSwipeLeft, canSwipeRight } = useTabSwipeNavigation({
@@ -148,8 +161,8 @@ export default function App() {
       const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1).toISOString();
 
       try {
-        const todayMeals = await getMealsByDateRange('current-user', startOfDay, endOfDay);
-        if (todayMeals.length >= 3) {
+        const todayMeals = await getMealsByDateRange(userId, startOfDay, endOfDay);
+        if (todayMeals.length >= DAILY_ANALYSIS_LIMIT) {
           setShowLimitOverlay(true);
           navigateToPremium();
           // Clear the file input so the same file can be selected again later if needed
@@ -531,11 +544,20 @@ export default function App() {
               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/90"></div>
               <div className="absolute bottom-4 left-4 flex items-end">
                 <div className="w-20 h-20 rounded-full border-2 border-white bg-gray-200 overflow-hidden mr-4">
-                  <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Avatar" />
+                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'default'}`} alt="Avatar" />
                 </div>
                 <div className="mb-2">
-                  <h1 className="text-2xl font-bold text-white">GourmetEviOmi</h1>
-                  <p className="text-sm text-muted-foreground">@IXmQKIsngd8Z</p>
+                  <h1 className="text-2xl font-bold text-white">
+                    {profile?.displayName || user?.displayName || (isAuthenticated ? 'User' : (language === Language.ZH ? '访客' : 'Guest'))}
+                  </h1>
+                  <p className="text-sm text-white/70">
+                    {user ? `@${user.username}` : (language === Language.ZH ? '未登录' : 'Not logged in')}
+                  </p>
+                  {profile?.bio && (
+                    <p className="text-sm text-white/80 mt-1 max-w-xs">
+                      {profile.bio}
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
@@ -546,11 +568,38 @@ export default function App() {
                 <Button variant="outline" className="h-8 px-4 text-xs py-0" onClick={navigateToPremium}>{t.unlock_btn}</Button>
               </div>
 
-              {/* Menu Group 1 */}
+              {/* Authentication Section */}
               <div className="space-y-1">
                 <h3 className="text-xs text-muted-foreground ml-4 mb-2">{t.account_title}</h3>
                 <div className={`${profileBgClass} rounded-xl overflow-hidden`}>
-                  <ListItem theme={theme} label={t.edit_profile} onClick={() => setCurrentView(AppView.PROFILE_EDIT)} />
+                  {isAuthenticated ? (
+                    <>
+                      <ListItem
+                        theme={theme}
+                        label={t.edit_profile}
+                        onClick={() => setCurrentView(AppView.PROFILE_EDIT)}
+                      />
+                      <ListItem
+                        theme={theme}
+                        label={language === Language.ZH ? '退出登录' : 'Logout'}
+                        icon={<LogOut size={16} />}
+                        onClick={() => setShowLogoutModal(true)}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <ListItem
+                        theme={theme}
+                        label={language === Language.ZH ? '登录' : 'Login'}
+                        onClick={() => setCurrentView(AppView.AUTH_LOGIN)}
+                      />
+                      <ListItem
+                        theme={theme}
+                        label={language === Language.ZH ? '注册账户' : 'Register'}
+                        onClick={() => setCurrentView(AppView.AUTH_REGISTER)}
+                      />
+                    </>
+                  )}
                   <ListItem theme={theme} label={t.subscribe_monthly} onClick={navigateToPremium} />
                 </div>
               </div>
@@ -583,27 +632,13 @@ export default function App() {
 
         {/* Profile Edit (15) */}
         {currentView === AppView.PROFILE_EDIT && (
-          <div className="pt-20 px-4 animate-slide-left">
-            <div className="flex justify-center mb-8">
-              <div className="w-24 h-24 rounded-full bg-gray-700 relative overflow-hidden">
-                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" className="w-full h-full" />
-                <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                  <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">📷</div>
-                </div>
-              </div>
-            </div>
-            <div className={`${profileBgClass} rounded-xl overflow-hidden mb-8`}>
-              <div className={`flex justify-between p-4 border-b ${theme === 'dark' ? 'border-white/5' : 'border-black/5'}`}>
-                <span className={profileTextClass}>Nickname</span>
-                <span className={`${profileTextClass} font-medium`}>GourmetEviOmi</span>
-              </div>
-              <div className="p-4">
-                <span className={`${profileTextClass} block mb-2`}>Bio</span>
-                <textarea className="w-full bg-transparent text-muted-foreground h-20 resize-none outline-none" placeholder="Write something..."></textarea>
-              </div>
-            </div>
-            <Button fullWidth onClick={navigateToProfile}>{t.save}</Button>
-          </div>
+          <ProfileEdit
+            language={language}
+            theme={theme}
+            profileBgClass={profileBgClass}
+            profileTextClass={profileTextClass}
+            onSave={navigateToProfile}
+          />
         )}
 
         {/* Appearance (16) */}
@@ -710,10 +745,133 @@ export default function App() {
               className="bg-card"
             />
             <div className="pt-safe-top px-4 pb-32 space-y-4">
-              <SyncStatus userId="current-user" language={language === Language.ZH ? Language.ZH : Language.EN} />
+              <SyncStatus userId={userId} language={language === Language.ZH ? Language.ZH : Language.EN} />
             </div>
           </div>
         )}
+
+        {/* Logout Confirmation Modal - Enhanced with Neumorphic Design */}
+        <AnimatePresence>
+          {showLogoutModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              {/* Backdrop with fade */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="absolute inset-0"
+                style={{ background: 'rgba(0, 0, 0, 0.5)' }}
+                onClick={() => setShowLogoutModal(false)}
+              />
+
+              {/* Modal with Spring Animation */}
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="relative z-10 w-full max-w-sm rounded-3xl p-6"
+                style={{
+                  background: theme === 'dark' ? '#2C2C2E' : '#ffffff',
+                  boxShadow: theme === 'dark'
+                    ? '0 20px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1), inset 0 -1px 0 rgba(0,0,0,0.1)'
+                    : '0 20px 60px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.8), inset 0 -1px 0 rgba(0,0,0,0.05)',
+                }}
+              >
+                {/* Icon with Gradient Background */}
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25, delay: 0.1 }}
+                  className="flex justify-center mb-5"
+                >
+                  <div
+                    className="w-16 h-16 rounded-2xl flex items-center justify-center"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(234, 88, 12, 0.1) 50%, rgba(220, 38, 38, 0.05) 100%)',
+                      boxShadow: theme === 'dark'
+                        ? 'inset 0 2px 8px rgba(249, 115, 22, 0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
+                        : 'inset 0 2px 8px rgba(249, 115, 22, 0.15), inset 0 1px 0 rgba(255,255,255,0.3)',
+                    }}
+                  >
+                    <LogOut size={28} style={{ color: '#f97316' }} />
+                  </div>
+                </motion.div>
+
+                {/* Title */}
+                <motion.h2
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.15 }}
+                  className="text-2xl font-bold text-center mb-3"
+                  style={{
+                    background: 'linear-gradient(135deg, #f97316 0%, #ea580c 50%, #dc2626 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}
+                >
+                  {language === Language.ZH ? '退出登录' : 'Logout'}
+                </motion.h2>
+
+                {/* Message */}
+                <motion.p
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.2 }}
+                  className="text-center text-base mb-8"
+                  style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
+                >
+                  {language === Language.ZH ? '确定要退出登录吗？' : 'Are you sure you want to logout?'}
+                </motion.p>
+
+                {/* Buttons with Neumorphic Style */}
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30, delay: 0.25 }}
+                  className="flex gap-3"
+                >
+                  {/* Cancel Button */}
+                  <motion.button
+                    onClick={() => setShowLogoutModal(false)}
+                    className="flex-1 py-3.5 rounded-2xl font-medium transition-all duration-200"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
+                    style={{
+                      background: theme === 'dark' ? '#3C3C3E' : '#f3f4f6',
+                      color: theme === 'dark' ? '#ffffff' : '#1f2937',
+                      boxShadow: theme === 'dark'
+                        ? 'inset 0 2px 6px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.05)'
+                        : 'inset 0 2px 6px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.5)',
+                    }}
+                  >
+                    {language === Language.ZH ? '取消' : 'Cancel'}
+                  </motion.button>
+
+                  {/* Logout Button */}
+                  <motion.button
+                    onClick={async () => {
+                      setShowLogoutModal(false);
+                      await logout();
+                      navigateBack();
+                    }}
+                    className="flex-1 py-3.5 rounded-2xl font-medium text-white transition-all duration-200"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
+                    style={{
+                      background: 'linear-gradient(135deg, #f97316 0%, #ea580c 50%, #dc2626 100%)',
+                      boxShadow: '0 6px 20px rgba(249, 115, 22, 0.35), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)',
+                    }}
+                  >
+                    {language === Language.ZH ? '退出' : 'Logout'}
+                  </motion.button>
+                </motion.div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
       </div>
     );
@@ -818,7 +976,74 @@ export default function App() {
     );
   }
 
+  // 4. Auth Views
+  if (currentView === AppView.AUTH_LOGIN) {
+    return (
+      <LoginView
+        language={language}
+        theme={theme}
+        onBack={navigateBack}
+        onRegisterClick={() => setCurrentView(AppView.AUTH_REGISTER)}
+        onLoginSuccess={navigateBack}
+      />
+    );
+  }
+
+  if (currentView === AppView.AUTH_REGISTER) {
+    return (
+      <RegisterView
+        language={language}
+        theme={theme}
+        onBack={navigateBack}
+        onLoginClick={() => setCurrentView(AppView.AUTH_LOGIN)}
+        onRegisterSuccess={navigateBack}
+      />
+    );
+  }
+
   // 5. Main Tabs
+  // Show login prompt if user is not authenticated and has no offline data
+  if (!isAuthenticated && meals.length === 0) {
+    return (
+      <div className={`min-h-screen ${mainBgClass} flex flex-col items-center justify-center p-6`}>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center max-w-sm"
+        >
+          <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+            <span className="text-5xl">🍽️</span>
+          </div>
+          <h1 className={`text-2xl font-bold mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+            {language === Language.ZH ? '欢迎使用胃之书' : 'Welcome to Bellybook'}
+          </h1>
+          <p className={`text-sm mb-8 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+            {language === Language.ZH
+              ? '登录以保存您的美食记录，开启美食探索之旅'
+              : 'Login to save your food records and start your culinary journey'}
+          </p>
+          <div className="space-y-3">
+            <Button
+              onClick={() => setCurrentView(AppView.AUTH_LOGIN)}
+              className="w-full"
+              size="lg"
+            >
+              {language === Language.ZH ? '登录' : 'Login'}
+            </Button>
+            <Button
+              onClick={() => setCurrentView(AppView.AUTH_REGISTER)}
+              variant="outline"
+              className="w-full"
+              size="lg"
+            >
+              {language === Language.ZH ? '注册账户' : 'Register'}
+            </Button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <div className={`min-h-screen relative ${mainBgClass}`}>
       {/* Offline Status Banner */}
@@ -876,7 +1101,7 @@ export default function App() {
             }>
               {activeTab === 0 && (
                 <PullToRefresh onRefresh={handleRefresh} language={language}>
-                  <Tab1Home lang={language} theme={theme} refreshTrigger={refreshTrigger} />
+                  <Tab1Home lang={language} theme={theme} refreshTrigger={refreshTrigger} userId={userId} />
                 </PullToRefresh>
               )}
               {activeTab === 1 && (
@@ -885,6 +1110,7 @@ export default function App() {
                     lang={language}
                     theme={theme}
                     refreshTrigger={refreshTrigger}
+                    userId={userId}
                     onCuisineClick={(cuisine) => {
                       console.log('App: Navigating to CuisineDetail', cuisine);
                       setSelectedCuisine(cuisine);
@@ -895,7 +1121,7 @@ export default function App() {
               )}
               {activeTab === 2 && (
                 <PullToRefresh onRefresh={handleRefresh} language={language}>
-                  <Tab2History lang={language} isPremium={isPremium} onUpgrade={navigateToPremium} theme={theme} refreshTrigger={refreshTrigger} />
+                  <Tab2History lang={language} isPremium={isPremium} onUpgrade={navigateToPremium} theme={theme} refreshTrigger={refreshTrigger} userId={userId} />
                 </PullToRefresh>
               )}
               {activeTab === 3 && (

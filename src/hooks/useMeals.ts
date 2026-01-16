@@ -30,11 +30,13 @@ export function useMeals(userId: string = DEFAULT_USER_ID): UseMealsResult {
    * Load all meals from IndexedDB
    */
   const loadMeals = useCallback(async () => {
+    console.log('[useMeals] loadMeals called with userId:', userId);
     setIsLoading(true);
     setError(null);
 
     try {
       const allMeals = await meals.getAll(userId);
+      console.log('[useMeals] Loaded meals:', allMeals.length, 'for userId:', userId);
       // Sort by createdAt descending (newest first)
       const sortedMeals = allMeals.sort((a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()

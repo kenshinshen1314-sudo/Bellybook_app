@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { analyzeFoodImage } from '@/services/geminiService';
 import { Language, type AnalysisResult } from '@/types';
+import { saveMeal as saveMealService } from '@/services/mealService';
 
 export interface AnalyzeMealState {
   imageUrl: string | null;
@@ -14,18 +15,15 @@ export interface AnalyzeMealState {
 export interface AnalyzeMealResult {
   state: AnalyzeMealState;
   analyzeImage: (imageUrl: string, language: Language) => Promise<void>;
-  saveAnalysis: () => Promise<void>;
+  saveAnalysis: (userId: string | null) => Promise<void>;
   reset: () => void;
 }
 
-const DEFAULT_USER_ID = 'current-user';
-
 /**
  * Hook for managing meal analysis workflow
- * Handles image analysis and loading states
- * Note: Save is now handled manually via saveAnalysis callback
+ * Note: userId is now passed during save, not during hook initialization
  */
-export function useAnalyzeMeal(userId: string = DEFAULT_USER_ID): AnalyzeMealResult {
+export function useAnalyzeMeal(): AnalyzeMealResult {
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<AnalysisResult | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -70,9 +68,10 @@ export function useAnalyzeMeal(userId: string = DEFAULT_USER_ID): AnalyzeMealRes
 
   /**
    * Save the current analysis result
-   * Import saveMeal dynamically to avoid circular dependency
+   * @param userId - The user ID to save the meal for (can be null for offline mode)
    */
-  const saveAnalysis = useCallback(async (): Promise<void> => {
+  const saveAnalysis = useCallback(async (userId: string | null): Promise<void> => {
+    console.log('[useAnalyzeMeal] saveAnalysis called with userId:', userId);
     if (!analysis || !imageUrl) {
       setError('No analysis to save');
       return;
@@ -82,10 +81,8 @@ export function useAnalyzeMeal(userId: string = DEFAULT_USER_ID): AnalyzeMealRes
     setError(null);
 
     try {
-      // Dynamically import saveMeal to avoid circular dependency
-      const { saveMeal: doSaveMeal } = await import('@/hooks/useMeals');
-
-      await doSaveMeal(userId, imageUrl, analysis);
+      // Use the centralized meal service
+      await saveMealService(userId, imageUrl, analysis);
       setSaveSuccess(true);
       console.log('[useAnalyzeMeal] Meal saved successfully');
     } catch (err) {
@@ -95,7 +92,7 @@ export function useAnalyzeMeal(userId: string = DEFAULT_USER_ID): AnalyzeMealRes
     } finally {
       setIsSaving(false);
     }
-  }, [analysis, imageUrl, userId]);
+  }, [analysis, imageUrl]);
 
   /**
    * Reset the analysis state
@@ -126,7 +123,6 @@ export function useAnalyzeMeal(userId: string = DEFAULT_USER_ID): AnalyzeMealRes
 
 /**
  * Convenience function to handle file input change
- * Reads file, converts to base64, and triggers analysis
  */
 export async function handleFileSelect(
   file: File,

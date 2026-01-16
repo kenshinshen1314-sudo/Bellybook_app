@@ -18,6 +18,7 @@ interface Tab2HistoryProps {
   onUpgrade: () => void;
   theme: Theme;
   refreshTrigger?: number;
+  userId?: string;
 }
 
 // Meal time colors (constants can stay outside)
@@ -162,7 +163,8 @@ interface Ball {
   elementRef?: React.RefObject<HTMLDivElement>; // DOM element ref for direct manipulation
 }
 
-const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, theme, refreshTrigger }) => {
+const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, theme, refreshTrigger, userId }) => {
+  console.log('[Tab2History] Render:', { lang, userId, refreshTrigger });
   const t = TEXT[lang];
   const textColor = theme === 'dark' ? 'text-white' : 'text-black';
   const textTitle = theme === 'dark' ? 'text-white/90' : 'text-black/90';
@@ -198,8 +200,8 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
   const lastFrameTimeRef = useRef<number>(0); // For frame rate throttling
   const collisionEffectsRef = useRef<Map<string, { scale: number; opacity: number }>>(new Map()); // Visual effects for collisions
 
-  // Load meals from IndexedDB
-  const { meals, isLoading: mealsLoading, deleteMeal, updateMeal, getMealsByDateRange, refresh } = useMeals();
+  // Load meals from IndexedDB - use userId from props to get correct user's meals
+  const { meals, isLoading: mealsLoading, deleteMeal, updateMeal, getMealsByDateRange, refresh } = useMeals(userId);
   const { showSuccess, showError } = useToastNotification();
   const { showSkeleton } = useMinDelay(mealsLoading, 300);
 
@@ -552,7 +554,7 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
     const ingredientMap = new Map<string, { name: string; icon: string; description: string }>();
 
     meals.forEach(meal => {
-      (meal.analysis.ingredients || []).forEach(ing => {
+      (meal.analysis?.ingredients || []).forEach(ing => {
         // Filter out garnishes
         if (!GARNISH_INGREDIENTS.some(g => ing.name.includes(g))) {
           if (!ingredientMap.has(ing.name)) {

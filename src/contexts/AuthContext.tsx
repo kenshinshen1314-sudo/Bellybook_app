@@ -19,8 +19,8 @@ interface AuthContextValue {
   user: AuthSession | null;
 
   // Actions
-  register: (data: RegisterData) => Promise<void>;
-  login: (data: LoginData) => Promise<void>;
+  register: (data: RegisterData) => Promise<AuthSession>;
+  login: (data: LoginData) => Promise<AuthSession>;
   logout: () => Promise<void>;
   updateProfile: (displayName: string) => Promise<void>;
 
@@ -72,7 +72,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   /**
    * Register a new user
    */
-  const register = useCallback(async (data: RegisterData) => {
+  const register = useCallback(async (data: RegisterData): Promise<AuthSession> => {
     setIsLoading(true);
     try {
       const session = await authService.register(data);
@@ -97,18 +97,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
 
       console.log('[Auth] User profile created in IndexedDB');
+
+      // Auto-migrate offline data from 'current-user' to the new user
+      await migrateOfflineData(session.userId);
+
+      return session;
     } catch (error) {
       console.error('[Auth] Registration failed:', error);
       throw error;
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * Login with username and password
    */
-  const login = useCallback(async (data: LoginData) => {
+  const login = useCallback(async (data: LoginData): Promise<AuthSession> => {
     setIsLoading(true);
     try {
       const session = await authService.login(data);
@@ -135,13 +140,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
         });
         console.log('[Auth] User profile created in IndexedDB');
       }
+
+      // Auto-migrate offline data from 'current-user' to the logged-in user
+      await migrateOfflineData(session.userId);
+
+      return session;
     } catch (error) {
       console.error('[Auth] Login failed:', error);
       throw error;
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   /**
    * Logout current user
@@ -231,21 +241,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       // Migrate daily nutrition data
       const offlineDb = await (await import('@/db')).getDB();
-      const tx = offlineDb.transaction('dailyNutrition', 'readonly');
-      const dailyNutritionStore = tx.objectStore('dailyNutrition');
+      const dailyNutritionTx = offlineDb.transaction('dailyNutrition', 'readwrite');
+      const dailyNutritionStore = dailyNutritionTx.objectStore('dailyNutrition');
       const dailyIndex = dailyNutritionStore.index('userId');
 
       let cursor = await dailyIndex.openCursor(IDBKeyRange.only(OFFLINE_USER_ID));
       while (cursor) {
         const record = cursor.value;
         record.userId = userId;
-        await offlineDb.put('dailyNutrition', record);
+        await dailyNutritionStore.put(record);
         cursor = await cursor.continue();
       }
-      await tx.done;
+      await dailyNutritionTx.done;
 
       // Migrate cuisine unlocks
-      const cuisineTx = offlineDb.transaction('cuisineUnlocks', 'readonly');
+      const cuisineTx = offlineDb.transaction('cuisineUnlocks', 'readwrite');
       const cuisineStore = cuisineTx.objectStore('cuisineUnlocks');
       const cuisineIndex = cuisineStore.index('userId');
 
@@ -253,7 +263,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       while (cursor) {
         const record = cursor.value;
         record.userId = userId;
-        await offlineDb.put('cuisineUnlocks', record);
+        await cuisineStore.put(record);
         cursor = await cursor.continue();
       }
       await cuisineTx.done;

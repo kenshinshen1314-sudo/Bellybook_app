@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { Language } from '../types';
+import { DAILY_ANALYSIS_LIMIT } from '../config';
 
 interface LimitReachedOverlayProps {
     onDismiss: () => void;
@@ -41,8 +42,8 @@ export const LimitReachedOverlay: React.FC<LimitReachedOverlayProps> = ({ onDism
                         </h2>
                         <p className="text-xs text-gray-300 leading-relaxed font-medium opacity-90">
                             {lang === Language.ZH
-                                ? '免费用户每天可分析3餐，升级会员无限分析，尽情解锁你的美食经纬'
-                                : 'Free users can analyze 3 meals per day. Upgrade for unlimited access and unlock your gourmet journey.'}
+                                ? `免费用户每天可分析${DAILY_ANALYSIS_LIMIT}餐，升级会员无限分析，尽情解锁你的美食经纬`
+                                : `Free users can analyze ${DAILY_ANALYSIS_LIMIT} meals per day. Upgrade for unlimited access and unlock your gourmet journey.`}
                         </p>
                     </div>
                 </div>

@@ -14,6 +14,7 @@ interface Tab1HomeProps {
   lang: Language;
   theme: Theme;
   refreshTrigger?: number;
+  userId?: string;
 }
 
 // Garnish ingredients to filter out
@@ -457,8 +458,8 @@ function MealCard({
   );
 }
 
-const Tab1Home: React.FC<Tab1HomeProps> = ({ lang, theme, refreshTrigger }) => {
-  const { meals, isLoading, refresh, deleteMeal, updateMeal } = useMeals();
+const Tab1Home: React.FC<Tab1HomeProps> = ({ lang, theme, refreshTrigger, userId }) => {
+  const { meals, isLoading, refresh, deleteMeal, updateMeal } = useMeals(userId);
   const { showSkeleton } = useMinDelay(isLoading, 300);
   const { showSuccess, showError } = useToastNotification();
   const t = TEXT[lang];

@@ -145,6 +145,7 @@ export interface DailyNutrition {
  * Cuisine unlock status
  */
 export interface CuisineUnlock {
+  id?: number; // Auto-incremented ID (optional for new records)
   userId: string;
   cuisineName: string;
   firstMealAt: string; // ISO timestamp
