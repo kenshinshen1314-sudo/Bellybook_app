@@ -36,5 +36,12 @@ export { ApiRequestError } from './client';
 
 // Re-export API modules
 export { meals } from './meals';
+export { ranking } from './ranking';
 export { sync } from './sync';
-export { auth, profile } from './profile';
+export { storage } from './storage';
+
+// Re-export error types
+export * from './errors';
+
+// Re-export offline utilities
+export * from './offlineFallback';

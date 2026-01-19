@@ -7,7 +7,7 @@ import { MealDetailModal } from '../../components/MealDetailModal';
 import { Language, TEXT, Theme } from '../../types';
 import { ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid, LabelList, Cell, ScatterChart, Scatter, ZAxis } from 'recharts';
 import { Sun, CloudSun, Moon, Coffee, ChevronLeft, ChevronRight, Calendar, Flame, UtensilsCrossed, TrendingUp, Sparkles } from 'lucide-react';
-import { useMeals } from '@/hooks/useMeals';
+import { useBackendMeals } from '@/hooks/useBackendMeals';
 import { useToastNotification } from '@/contexts/ToastContext';
 import { useMinDelay } from '@/hooks/useMinDelay';
 import { translateCuisine } from '../../utils/translationUtils';
@@ -123,7 +123,7 @@ function IngredientCard({
   theme: Theme;
   index: number;
 }) {
-  const cardBg = theme === 'dark' ? 'bg-[#2C2C2E]' : 'bg-[#F5F0E8]';
+  const cardBg = theme === 'dark' ? 'bg-[#2C2C2E]' : 'bg-white border border-gray-200';
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-800';
   const descColor = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
 
@@ -200,8 +200,8 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
   const lastFrameTimeRef = useRef<number>(0); // For frame rate throttling
   const collisionEffectsRef = useRef<Map<string, { scale: number; opacity: number }>>(new Map()); // Visual effects for collisions
 
-  // Load meals from IndexedDB - use userId from props to get correct user's meals
-  const { meals, isLoading: mealsLoading, deleteMeal, updateMeal, getMealsByDateRange, refresh } = useMeals(userId);
+  // Load meals from backend API - use userId from props to get correct user's meals
+  const { meals, isLoading: mealsLoading, refresh, deleteMeal, updateMeal } = useBackendMeals(userId, lang);
   const { showSuccess, showError } = useToastNotification();
   const { showSkeleton } = useMinDelay(mealsLoading, 300);
 
@@ -539,6 +539,7 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
   }, [meals]);
 
   // Calculate food diversity stats (total types and this week's new additions)
+  // Uses same logic as Tab1Home's "近期解锁" section
   const foodDiversityStats = useMemo(() => {
     // Get the current week's dates (Monday to Sunday)
     const today = new Date();
@@ -551,17 +552,24 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
     mondayOfThisWeek.setHours(0, 0, 0, 0);
 
     // Extract all unique ingredients from all meals (for ingredient cards)
+    // Same logic as Tab1Home's "近期解锁" - handles both string and object formats
     const ingredientMap = new Map<string, { name: string; icon: string; description: string }>();
 
     meals.forEach(meal => {
-      (meal.analysis?.ingredients || []).forEach(ing => {
+      const ingredients = meal.analysis?.ingredients || [];
+      // Backend returns ingredients as string[], frontend expects object array
+      ingredients.forEach(ing => {
+        // Handle both string and object formats
+        const ingredientName = typeof ing === 'string' ? ing : ing?.name;
+        if (!ingredientName || typeof ingredientName !== 'string') return;
+
         // Filter out garnishes
-        if (!GARNISH_INGREDIENTS.some(g => ing.name.includes(g))) {
-          if (!ingredientMap.has(ing.name)) {
-            ingredientMap.set(ing.name, {
-              name: ing.name,
-              icon: ing.icon || getIngredientIcon(ing.name),
-              description: ing.description || getIngredientDescription(ing.name, lang)
+        if (!GARNISH_INGREDIENTS.some(g => ingredientName.includes(g))) {
+          if (!ingredientMap.has(ingredientName)) {
+            ingredientMap.set(ingredientName, {
+              name: ingredientName,
+              icon: typeof ing === 'object' ? ing.icon || getIngredientIcon(ingredientName) : getIngredientIcon(ingredientName),
+              description: typeof ing === 'object' ? ing.description || getIngredientDescription(ingredientName, lang) : getIngredientDescription(ingredientName, lang)
             });
           }
         }
@@ -578,12 +586,16 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
       const mealDate = new Date(meal.createdAt);
       const isThisWeek = mealDate >= mondayOfThisWeek;
 
-      (meal.analysis.ingredients || []).forEach(ing => {
-        if (!GARNISH_INGREDIENTS.some(g => ing.name.includes(g))) {
+      const ingredients = meal.analysis?.ingredients || [];
+      ingredients.forEach(ing => {
+        const ingredientName = typeof ing === 'string' ? ing : ing?.name;
+        if (!ingredientName || typeof ingredientName !== 'string') return;
+
+        if (!GARNISH_INGREDIENTS.some(g => ingredientName.includes(g))) {
           if (isThisWeek) {
-            thisWeekIngredients.add(ing.name);
+            thisWeekIngredients.add(ingredientName);
           } else {
-            beforeThisWeekIngredients.add(ing.name);
+            beforeThisWeekIngredients.add(ingredientName);
           }
         }
       });

@@ -13,7 +13,7 @@ import { ProfileEdit } from './components/ProfileEdit';
 import { fadeInUp, pageTransition } from './lib/motion';
 import { useOnline } from './hooks/useOnline';
 import { useProfile } from './hooks/useProfile';
-import { useAnalyzeMeal } from './hooks/useAnalyzeMeal';
+import { useBackendUpload } from './hooks/useBackendUpload';
 import { DAILY_ANALYSIS_LIMIT } from './config';
 import { useTabSwipeNavigation, springConfig, tabVariants, getSlideDirection } from './hooks/useSwipeNavigation';
 import { useTabBarHide } from './hooks/useScrollHide';
@@ -51,24 +51,11 @@ export default function App() {
   // User profile and settings (persisted to IndexedDB)
   const { profile, settings, isLoading: profileLoading, updateTheme, updateLanguage, saveProfile } = useProfile(userId);
 
-  // Meal analysis workflow - userId is passed during save, not initialization
-  const { state: analysisState, analyzeImage, saveAnalysis, reset: resetAnalysis } = useAnalyzeMeal();
+  // Backend upload workflow - uses backend API for upload + AI analysis + Supabase storage
+  const { state: uploadState, uploadWithAnalysis, reset: resetUpload } = useBackendUpload();
 
   // Add a refresh trigger for meals
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-
-  // Handle save and refresh - pass userId to saveAnalysis
-  const handleSaveAndContinue = async () => {
-    console.log('[App] handleSaveAndContinue called, user:', user);
-    console.log('[App] userId to save:', user?.userId || null);
-    await saveAnalysis(user?.userId || null);
-    // Trigger refresh for other pages
-    setRefreshTrigger(prev => prev + 1);
-    // Navigate back to home after a short delay
-    setTimeout(() => {
-      navigateBack();
-    }, 1500);
-  };
 
   // State
   const [currentView, setCurrentView] = useState<AppView>(AppView.MAIN_TABS);
@@ -162,7 +149,10 @@ export default function App() {
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    // Check Daily Limit for Free Users
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check Daily Limit for Free Users (only if not already checked by backend)
     if (!isPremium) {
       const now = new Date();
       const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
@@ -183,22 +173,20 @@ export default function App() {
       }
     }
 
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64 = reader.result as string;
-        // Navigate to analysis view
-        setCurrentView(AppView.ANALYSIS_RESULT);
-        // Start analysis using useAnalyzeMeal hook
-        try {
-          await analyzeImage(base64, language);
-        } catch (error) {
-          console.error('[App] Analysis failed:', error);
-        }
-      };
-      reader.readAsDataURL(file);
+    // Navigate to analysis view first
+    setCurrentView(AppView.ANALYSIS_RESULT);
+
+    // Upload and analyze using backend API
+    try {
+      await uploadWithAnalysis(file);
+      // Trigger refresh for other pages since backend auto-saves the meal
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error) {
+      console.error('[App] Backend upload failed:', error);
     }
+
+    // Clear the file input
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const navigateToProfile = () => setCurrentView(AppView.PROFILE_HOME);
@@ -248,40 +236,46 @@ export default function App() {
         </button>
 
         {/* Error State */}
-        {analysisState.error && (
+        {uploadState.error && (
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             className="mx-4 mt-safe-top bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-xl"
           >
-            <p className="text-sm font-medium">{analysisState.error}</p>
+            <p className="text-sm font-medium">{uploadState.error}</p>
+            {uploadState.quotaExceeded && uploadState.quotaInfo && (
+              <p className="text-xs mt-2">
+                {language === Language.ZH ? '每日限额' : 'Daily limit'}: {uploadState.quotaInfo.limit}
+                | {language === Language.ZH ? '剩余' : 'Remaining'}: {uploadState.quotaInfo.remaining}
+              </p>
+            )}
             <Button
               variant="outline"
               size="sm"
               className="mt-2"
               onClick={() => {
-                resetAnalysis();
+                resetUpload();
                 navigateBack();
               }}
             >
-              返回
+              {language === Language.ZH ? '返回' : 'Back'}
             </Button>
           </motion.div>
         )}
 
         {/* Top Image */}
         <div className="h-[40vh] w-full rounded-3xl overflow-hidden mb-6 relative">
-          <img src={analysisState.imageUrl || ''} className="w-full h-full object-cover" alt="Captured" />
-          {analysisState.isAnalyzing && (
+          <img src={uploadState.imageUrl || ''} className="w-full h-full object-cover" alt="Captured" />
+          {uploadState.isUploading && (
             <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center">
               <Loader2 className="w-8 h-8 text-white animate-spin mb-2" />
-              <span className="text-white text-sm font-medium">{language === Language.ZH ? '正在分析...' : 'Analyzing...'}</span>
+              <span className="text-white text-sm font-medium">{language === Language.ZH ? '上传分析中...' : 'Uploading & Analyzing...'}</span>
             </div>
           )}
         </div>
 
         {/* Analysis Card */}
-        {!analysisState.isAnalyzing && analysisState.analysis ? (
+        {!uploadState.isUploading && uploadState.analysis ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -292,25 +286,25 @@ export default function App() {
               <div className="flex items-center space-x-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500"></div>
                 <div>
-                  <h2 className="text-xl font-bold">{analysisState.analysis.foodName || (language === Language.ZH ? '未知食物' : 'Unknown Food')}</h2>
-                  {analysisState.analysis.cuisine && (
-                    <span className="text-xs text-muted-foreground">{analysisState.analysis.cuisine}</span>
+                  <h2 className="text-xl font-bold">{uploadState.analysis.foodName || (language === Language.ZH ? '未知食物' : 'Unknown Food')}</h2>
+                  {uploadState.analysis.cuisine && (
+                    <span className="text-xs text-muted-foreground">{uploadState.analysis.cuisine}</span>
                   )}
                 </div>
               </div>
 
               {/* Nutrition Display - use new nutrition format */}
-              {analysisState.analysis.nutrition && (
+              {uploadState.analysis.nutrition && (
                 <div className="grid grid-cols-4 gap-2 mb-4">
                   <div className="text-center p-2 bg-muted rounded-xl">
                     <div className="text-lg font-bold text-orange-500">
-                      {Math.round(analysisState.analysis.nutrition.calories || 0)}
+                      {Math.round(uploadState.analysis.nutrition.calories || 0)}
                     </div>
                     <div className="text-xs text-muted-foreground">kcal</div>
                   </div>
                   <div className="text-center p-2 bg-muted rounded-xl">
                     <div className="text-lg font-bold text-red-500">
-                      {Math.round(analysisState.analysis.nutrition.protein || 0)}
+                      {Math.round(uploadState.analysis.nutrition.protein || 0)}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {language === Language.ZH ? '蛋白质' : 'Protein'} (g)
@@ -318,7 +312,7 @@ export default function App() {
                   </div>
                   <div className="text-center p-2 bg-muted rounded-xl">
                     <div className="text-lg font-bold text-yellow-500">
-                      {Math.round(analysisState.analysis.nutrition.fat || 0)}
+                      {Math.round(uploadState.analysis.nutrition.fat || 0)}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {language === Language.ZH ? '脂肪' : 'Fat'} (g)
@@ -326,7 +320,7 @@ export default function App() {
                   </div>
                   <div className="text-center p-2 bg-muted rounded-xl">
                     <div className="text-lg font-bold text-green-500">
-                      {Math.round(analysisState.analysis.nutrition.carbohydrates || 0)}
+                      {Math.round(uploadState.analysis.nutrition.carbohydrates || 0)}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {language === Language.ZH ? '碳水' : 'Carbs'} (g)
@@ -336,80 +330,66 @@ export default function App() {
               )}
 
               {/* Fallback for old format */}
-              {!analysisState.analysis.nutrition && analysisState.analysis.calories && (
+              {!uploadState.analysis.nutrition && uploadState.analysis.calories && (
                 <div className="flex justify-between text-sm mb-4 text-muted-foreground bg-muted p-3 rounded-xl">
-                  <span className="font-medium text-gray-800 dark:text-gray-200">{analysisState.analysis.calories || 0} kcal</span>
-                  <span>{analysisState.analysis.macros?.protein || '0g'} {language === Language.ZH ? '蛋白质' : 'Protein'}</span>
-                  <span>{analysisState.analysis.macros?.fat || '0g'} {language === Language.ZH ? '脂肪' : 'Fat'}</span>
+                  <span className="font-medium text-gray-800 dark:text-gray-200">{uploadState.analysis.calories || 0} kcal</span>
+                  <span>{uploadState.analysis.macros?.protein || '0g'} {language === Language.ZH ? '蛋白质' : 'Protein'}</span>
+                  <span>{uploadState.analysis.macros?.fat || '0g'} {language === Language.ZH ? '脂肪' : 'Fat'}</span>
                 </div>
               )}
 
               <p className="text-sm text-muted-foreground dark:text-muted-foreground leading-relaxed mb-4">
-                {analysisState.analysis.description || ''}
+                {uploadState.analysis.description || ''}
               </p>
 
               {/* Detailed Sections */}
               <div className="space-y-4 pt-4 border-t border-border">
                 <div>
                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1">{t.analysis_plating}</span>
-                  <p className="text-sm text-foreground dark:text-muted-foreground leading-snug">{analysisState.analysis.plating || '-'}</p>
+                  <p className="text-sm text-foreground dark:text-muted-foreground leading-snug">{uploadState.analysis.plating || '-'}</p>
                 </div>
                 <div>
                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1">{t.analysis_sensory}</span>
-                  <p className="text-sm text-foreground dark:text-muted-foreground leading-snug">{analysisState.analysis.sensory || '-'}</p>
+                  <p className="text-sm text-foreground dark:text-muted-foreground leading-snug">{uploadState.analysis.sensory || '-'}</p>
                 </div>
                 <div>
                   <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider block mb-1">{t.analysis_container}</span>
-                  <p className="text-sm text-foreground dark:text-muted-foreground leading-snug">{analysisState.analysis.container || '-'}</p>
+                  <p className="text-sm text-foreground dark:text-muted-foreground leading-snug">{uploadState.analysis.container || '-'}</p>
                 </div>
               </div>
             </Card>
 
             <Card className="p-5">
               <h3 className="text-lg font-bold mb-3">{t.suggestions}</h3>
-              <ul className="list-disc list-inside space-y-2 text-sm text-muted-foreground dark:text-muted-foreground">
-                {analysisState.analysis.suggestions?.map((s, i) => (
-                  <li key={i}>{s}</li>
-                )) || <li>No suggestions available.</li>}
-              </ul>
+              <p className="text-sm text-muted-foreground dark:text-muted-foreground leading-relaxed">
+                {uploadState.analysis.dishSuggestion || (uploadState.analysis.suggestions?.map((s, i) => s).join('\n') || '-')}
+              </p>
             </Card>
 
-            {/* Save Button */}
+            {/* Success Message - Backend auto-saves */}
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center text-sm text-green-600 dark:text-green-400 mt-4"
+            >
+              {language === Language.ZH ? '记录已自动保存到云端' : 'Record automatically saved to cloud'}
+              {uploadState.quotaInfo && (
+                <span className="block text-xs mt-1 text-muted-foreground">
+                  ({language === Language.ZH ? '今日剩余' : 'Today remaining'}: {uploadState.quotaInfo.remaining}/{uploadState.quotaInfo.limit})
+                </span>
+              )}
+            </motion.div>
+
+            {/* Back to Home Button */}
             <Button
-              onClick={handleSaveAndContinue}
-              disabled={analysisState.isSaving || analysisState.saveSuccess}
-              className="w-full py-6 text-lg font-semibold"
+              onClick={navigateBack}
+              className="w-full py-6 text-lg font-semibold mt-4"
               size="lg"
             >
-              {analysisState.isSaving ? (
-                <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  {language === Language.ZH ? '保存中...' : 'Saving...'}
-                </>
-              ) : analysisState.saveSuccess ? (
-                <>
-                  <Check className="w-5 h-5 mr-2" />
-                  {language === Language.ZH ? '已保存' : 'Saved'}
-                </>
-              ) : (
-                <>
-                  {language === Language.ZH ? '保存记录' : 'Save Record'}
-                </>
-              )}
+              {language === Language.ZH ? '返回首页' : 'Back to Home'}
             </Button>
-
-            {/* Success Message */}
-            {analysisState.saveSuccess && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-center text-sm text-green-600 dark:text-green-400"
-              >
-                {language === Language.ZH ? '记录已保存，即将返回首页...' : 'Record saved, returning to home...'}
-              </motion.div>
-            )}
           </motion.div>
-        ) : !analysisState.isAnalyzing && !analysisState.error && (
+        ) : !uploadState.isUploading && !uploadState.error && (
           <div className="text-center mt-10 text-muted-foreground">
             {language === Language.ZH ? '分析失败，请重试' : 'Analysis Failed. Please try again.'}
           </div>
@@ -489,7 +469,6 @@ export default function App() {
     return (
       <CuisineDetail
         cuisine={selectedCuisine}
-        meals={meals}
         lang={language}
         theme={theme}
         onBack={() => {
@@ -508,7 +487,6 @@ export default function App() {
     return (
       <DishDetail
         dishName={selectedDish}
-        meals={meals}
         lang={language}
         theme={theme}
         onBack={() => {
@@ -1012,6 +990,16 @@ export default function App() {
   }
 
   // 5. Main Tabs
+  // Show loading state while initializing
+  if (authLoading || profileLoading) {
+    return (
+      <div className={`min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6`}>
+        <Loader2 className="w-12 h-12 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
   // Show login prompt if user is not authenticated and has no offline data
   if (!isAuthenticated && meals.length === 0) {
     return (

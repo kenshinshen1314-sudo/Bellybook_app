@@ -74,6 +74,38 @@ export const meals = {
   },
 
   /**
+   * Get meals by cuisine
+   */
+  getByCuisine: async (
+    cuisine: string,
+    params?: PaginationParams
+  ): Promise<PaginatedResponse<MealResponse>> => {
+    return apiClient.get<PaginatedResponse<MealResponse>>('/meals', {
+      params: { cuisine, ...params },
+    });
+  },
+
+  /**
+   * Get meals by dish name (with dish info)
+   */
+  getByDishName: async (dishName: string): Promise<{
+    meals: MealResponse[];
+    dish: {
+      name: string;
+      cuisine: string;
+      appearanceCount: number;
+      averageCalories: number | null;
+      averageProtein: number | null;
+      averageFat: number | null;
+      averageCarbs: number | null;
+      description: string | null;
+      historicalOrigins: string | null;
+    } | null;
+  }> => {
+    return apiClient.get(`/meals/by-dish/${encodeURIComponent(dishName)}`);
+  },
+
+  /**
    * Upload meal image
    */
   uploadImage: async (file: File): Promise<ApiResponse<{ imageUrl: string }>> => {

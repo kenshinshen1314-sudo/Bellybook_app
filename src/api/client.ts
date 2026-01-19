@@ -11,7 +11,7 @@ import type {
 } from './types';
 
 // API base URL - configure for your backend
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.bellybook.app/v1';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1';
 
 /**
  * Token storage keys
@@ -131,7 +131,12 @@ interface RequestOptions extends RequestInit {
  * Build URL with query parameters
  */
 function buildUrl(base: string, path: string, params?: Record<string, string | number>): string {
-  const url = new URL(path, base);
+  // Ensure proper path joining: remove trailing slash from base and leading slash from path
+  const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+  const cleanPath = path.startsWith('/') ? path : '/' + path;
+  const fullPath = cleanBase + cleanPath;
+  
+  const url = new URL(fullPath);
   if (params) {
     Object.entries(params).forEach(([key, value]) => {
       url.searchParams.set(key, String(value));
@@ -210,81 +215,105 @@ async function fetchWithAuth<T>(
   path: string,
   options: RequestOptions = {}
 ): Promise<T> {
-  const {
-    params,
-    skipAuth = false,
-    skipRefresh = false,
-    headers = {},
-    ...fetchOptions
-  } = options;
+  try {
+    const {
+      params,
+      skipAuth = false,
+      skipRefresh = false,
+      headers = {},
+      ...fetchOptions
+    } = options;
 
-  let url = buildUrl(API_BASE_URL, path, params);
+    let url = buildUrl(API_BASE_URL, path, params);
 
-  // Prepare headers
-  const requestHeaders: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...headers,
-  };
+    // Prepare headers
+    const requestHeaders: HeadersInit = {
+      'Content-Type': 'application/json',
+      ...headers,
+    };
 
-  // Add auth token if needed
-  if (!skipAuth && tokenManager.isAuthenticated()) {
-    requestHeaders['Authorization'] = `Bearer ${tokenManager.getAccessToken()}`;
-  }
-
-  let request = new Request(url, {
-    ...fetchOptions,
-    headers: requestHeaders,
-  });
-
-  // Apply request interceptors
-  for (const interceptor of requestInterceptors) {
-    request = await interceptor(request);
-  }
-
-  let response = await fetch(request);
-
-  // Apply response interceptors
-  for (const interceptor of responseInterceptors) {
-    response = await interceptor(response);
-  }
-
-  // Handle 401 Unauthorized - try to refresh token
-  if (response.status === 401 && !skipAuth && !skipRefresh && tokenManager.getRefreshToken()) {
-    try {
-      const newToken = await refreshAccessToken();
-      // Update request with new token
-      requestHeaders['Authorization'] = `Bearer ${newToken}`;
-      request = new Request(url, {
-        ...fetchOptions,
-        headers: requestHeaders,
-      });
-      response = await fetch(request);
-    } catch (error) {
-      // Token refresh failed, clear tokens
-      tokenManager.clearTokens();
-      throw new ApiRequestError('Authentication failed', 401);
-    }
-  }
-
-  // Handle error responses
-  if (!response.ok) {
-    let errorMessage = 'Request failed';
-    let errorCode: string | undefined;
-    let details: any;
-
-    try {
-      const errorData: ApiError = await response.json();
-      errorMessage = errorData.message || errorMessage;
-      errorCode = errorData.code;
-      details = errorData.details;
-    } catch {
-      // Use default error message
+    // Add auth token if needed
+    if (!skipAuth && tokenManager.isAuthenticated()) {
+      requestHeaders['Authorization'] = `Bearer ${tokenManager.getAccessToken()}`;
     }
 
-    throw new ApiRequestError(errorMessage, response.status, errorCode, details);
-  }
+    let request = new Request(url, {
+      ...fetchOptions,
+      headers: requestHeaders,
+    });
 
-  return response.json();
+    // Apply request interceptors
+    for (const interceptor of requestInterceptors) {
+      request = await interceptor(request);
+    }
+
+    let response = await fetch(request);
+
+    // Apply response interceptors
+    for (const interceptor of responseInterceptors) {
+      response = await interceptor(response);
+    }
+
+    // Handle 401 Unauthorized - try to refresh token
+    if (response.status === 401 && !skipAuth && !skipRefresh && tokenManager.getRefreshToken()) {
+      try {
+        const newToken = await refreshAccessToken();
+        // Update request with new token
+        requestHeaders['Authorization'] = `Bearer ${newToken}`;
+        request = new Request(url, {
+          ...fetchOptions,
+          headers: requestHeaders,
+        });
+        response = await fetch(request);
+      } catch (error) {
+        // Token refresh failed, clear tokens
+        tokenManager.clearTokens();
+        throw new ApiRequestError('Authentication failed', 401);
+      }
+    }
+
+    // Handle error responses
+    if (!response.ok) {
+      let errorMessage = 'Request failed';
+      let errorCode: string | undefined;
+      let details: any;
+
+      try {
+        const errorData: ApiError = await response.json();
+        errorMessage = errorData.message || errorMessage;
+        errorCode = errorData.code;
+        details = errorData.details;
+      } catch {
+        // Use default error message
+      }
+
+      throw new ApiRequestError(errorMessage, response.status, errorCode, details);
+    }
+
+    return response.json();
+  } catch (error) {
+    // Handle network errors and other exceptions
+    if (error instanceof ApiRequestError) {
+      throw error;
+    }
+
+    // Network error or other fetch-related error
+    if (error instanceof Error) {
+      throw new ApiRequestError(
+        error.message || 'Network error',
+        0,
+        'NETWORK_ERROR',
+        { originalError: error }
+      );
+    }
+
+    // Unknown error
+    throw new ApiRequestError(
+      'An unexpected error occurred',
+      0,
+      'UNKNOWN'
+    );
+  }
 }
 
 /**

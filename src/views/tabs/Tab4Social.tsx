@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Card } from '../../components/UIComponents';
 import { Language, TEXT, Theme } from '../../types';
-import { useMeals } from '@/hooks/useMeals';
+import { useCuisineMasters } from '@/hooks/useCuisineMasters';
 import { useAuth } from '@/contexts/AuthContext';
 import { UtensilsCrossed } from 'lucide-react';
 
@@ -16,39 +16,16 @@ interface Tab4SocialProps {
 const Tab4Social: React.FC<Tab4SocialProps> = ({ lang, theme, onExpertsClick, onRankingClick, userId }) => {
   const t = TEXT[lang];
   const textColor = theme === 'dark' ? 'text-white' : 'text-black';
-  const { meals, isLoading } = useMeals(userId);
+  // Fetch cuisine masters from backend API
+  const { masters, isLoading } = useCuisineMasters(undefined, lang);
   const { user } = useAuth();
-
-  // Calculate cuisine statistics from user's meals
-  const cuisineStats = useMemo(() => {
-    const stats = new Map<string, number>();
-
-    meals.forEach(meal => {
-      const cuisine = meal.analysis?.cuisine;
-      if (cuisine && cuisine.trim()) {
-        stats.set(cuisine, (stats.get(cuisine) || 0) + 1);
-      }
-    });
-
-    // Sort by count (descending)
-    return Array.from(stats.entries())
-      .map(([cuisine, count], index) => ({
-        cuisine,
-        count,
-        rank: index + 1,
-      }))
-      .sort((a, b) => b.count - a.count);
-  }, [meals]);
-
-  // Total meals count
-  const totalMeals = meals.length;
 
   // Get display name
   const displayName = user?.displayName || (user?.username || (lang === 'zh' ? '我' : 'Me'));
 
   return (
     <div className={`pb-28 pt-24 px-4 animate-fade-in ${textColor} space-y-8`}>
-      {/* Cuisine Experts - 按菜系统计菜品数量，倒序展示 */}
+      {/* Cuisine Experts - 按用户统计菜品数量，倒序展示 */}
       <div>
          <div className="flex justify-between items-end mb-4">
             <h2 className="text-xl font-bold">{t.cuisine_experts}</h2>
@@ -60,7 +37,7 @@ const Tab4Social: React.FC<Tab4SocialProps> = ({ lang, theme, onExpertsClick, on
             </button>
          </div>
 
-         {cuisineStats.length === 0 ? (
+         {masters.length === 0 ? (
            <Card theme={theme} className="p-8 text-center">
               <UtensilsCrossed className="w-12 h-12 mx-auto mb-3 opacity-50" />
               <p className="text-sm text-gray-500">
@@ -71,32 +48,37 @@ const Tab4Social: React.FC<Tab4SocialProps> = ({ lang, theme, onExpertsClick, on
            </Card>
          ) : (
            <div className="space-y-3">
-              {cuisineStats.slice(0, 5).map((stat) => {
+              {masters.slice(0, 5).map((master) => {
                 // Badge for top 3
                 const getBadge = () => {
-                  if (stat.rank === 1) return '🥇';
-                  if (stat.rank === 2) return '🥈';
-                  if (stat.rank === 3) return '🥉';
-                  return stat.rank.toString();
+                  if (master.rank === 1) return '🥇';
+                  if (master.rank === 2) return '🥈';
+                  if (master.rank === 3) return '🥉';
+                  return master.rank.toString();
                 };
 
+                // Get avatar or use first letter of username
+                const avatarContent = master.avatarUrl
+                  ? <img src={master.avatarUrl} alt={master.username} className="w-full h-full rounded-full object-cover" />
+                  : <span>{master.username?.charAt(0)?.toUpperCase() || '?'}</span>;
+
                 return (
-                  <div key={stat.cuisine} className="flex items-center justify-between p-3">
+                  <div key={`${master.userId}-${master.cuisineName}`} className="flex items-center justify-between p-3">
                      <div className="flex items-center flex-1">
-                        <div className={`w-8 text-center text-lg mr-3 ${stat.rank <= 3 ? '' : 'text-gray-500'}`}>
+                        <div className={`w-8 text-center text-lg mr-3 ${master.rank <= 3 ? '' : 'text-gray-500'}`}>
                            {getBadge()}
                         </div>
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center mr-3 text-white text-sm font-bold">
-                           {displayName?.charAt(0)?.toUpperCase() || '?'}
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center mr-3 text-white text-sm font-bold overflow-hidden">
+                           {avatarContent}
                         </div>
                         <div className="flex-1">
-                           <div className="font-semibold text-sm">{displayName}</div>
+                           <div className="font-semibold text-sm">{master.username}</div>
                            <div className="text-xs text-gray-500">
-                              {stat.cuisine}
+                              {master.cuisineName}
                            </div>
                         </div>
                      </div>
-                     <div className="text-lg font-bold">{stat.count} <span className="text-sm font-normal text-gray-500">{lang === Language.ZH ? '道菜' : 'dishes'}</span></div>
+                     <div className="text-lg font-bold">{master.mealCount} <span className="text-sm font-normal text-gray-500">{lang === Language.ZH ? '道菜' : 'dishes'}</span></div>
                   </div>
                 );
               })}
@@ -108,12 +90,15 @@ const Tab4Social: React.FC<Tab4SocialProps> = ({ lang, theme, onExpertsClick, on
       <div>
          <div className="flex justify-between items-end mb-4">
             <h2 className="text-xl font-bold">{t.gourmet_ranking}</h2>
-            <span className="text-xs text-gray-500">
-              {cuisineStats.length} {lang === Language.ZH ? '种菜系' : 'cuisines'}
-            </span>
+            <button
+              onClick={onRankingClick}
+              className="text-xs text-gray-500 font-medium"
+            >
+              {t.details} &gt;
+            </button>
          </div>
          <Card theme={theme} className="h-80 p-4">
-            {cuisineStats.length === 0 ? (
+            {masters.length === 0 ? (
               <div className="h-full flex items-center justify-center text-gray-500">
                 <div className="text-center">
                    <UtensilsCrossed className="w-12 h-12 mx-auto mb-3 opacity-50" />
@@ -127,94 +112,46 @@ const Tab4Social: React.FC<Tab4SocialProps> = ({ lang, theme, onExpertsClick, on
             ) : (
               <div className="h-full flex items-end justify-center px-4">
                  {(() => {
-                    // 按用户分组统计菜系数据
-                    const userCuisineData = [
-                      {
-                        userId: userId || 'current',
-                        displayName: displayName,
-                        cuisineStats: cuisineStats.map(stat => ({
-                          cuisine: stat.cuisine,
-                          count: stat.count,
-                        }))
-                      }
-                    ];
-
-                    // 菜系颜色定义 - 柔和质感激变配色
-                    const cuisineColors = [
-                      'from-amber-300 to-amber-500',      // 柔和琥珀色
-                      'from-sky-300 to-sky-500',          // 柔和天蓝色
-                      'from-emerald-300 to-emerald-500',  // 柔和翠绿色
-                      'from-violet-300 to-violet-500',    // 柔和紫罗兰
-                      'from-orange-300 to-orange-500',    // 柔和橙色
-                      'from-teal-300 to-teal-500',        // 柔和青色
-                      'from-rose-300 to-rose-500',        // 柔和玫瑰色
-                      'from-lime-300 to-lime-500',        // 柔和青柠色
-                      'from-pink-300 to-pink-500',        // 柔和粉色
-                      'from-stone-300 to-stone-500',      // 柔和石灰色
-                    ];
-
-                    // 计算每个用户的总菜数，用于缩放
-                    const userTotals = userCuisineData.map(user =>
-                      user.cuisineStats.reduce((sum, c) => sum + c.count, 0)
-                    );
-                    const maxTotal = Math.max(...userTotals);
+                    // Get top 5 masters for the bar chart
+                    const topMasters = masters.slice(0, 5);
+                    const maxMealCount = Math.max(...topMasters.map(m => m.mealCount), 1);
                     const maxBarHeight = 200;
-                    const barScale = maxTotal > 0 ? maxBarHeight / maxTotal : 0;
+                    const barScale = maxMealCount > 0 ? maxBarHeight / maxMealCount : 0;
 
-                    return userCuisineData.map((userData, userIndex) => {
-                      const totalCount = userData.cuisineStats.reduce((sum, c) => sum + c.count, 0);
+                    return topMasters.map((master) => {
+                      const barHeight = master.mealCount * barScale;
+                      const avatarContent = master.avatarUrl
+                        ? <img src={master.avatarUrl} alt={master.username} className="w-full h-full rounded-full object-cover" />
+                        : <span>{master.username?.charAt(0)?.toUpperCase() || '?'}</span>;
 
                       return (
-                        <div key={userData.userId} className="flex flex-col items-center mx-4">
-                           {/* 堆叠柱状图 */}
+                        <div key={`${master.userId}-${master.cuisineName}`} className="flex flex-col items-center mx-4">
+                           {/* 柱状图 */}
                            <div
-                              className="w-16 rounded-t-sm relative flex flex-col-reverse mb-2"
-                              style={{ height: `${Math.max(totalCount * barScale, 20)}px`, minHeight: '20px' }}
+                              className="w-16 rounded-t-sm bg-gradient-to-t from-amber-400 to-amber-500 flex items-end justify-center mb-2 relative"
+                              style={{ height: `${Math.max(barHeight, 20)}px`, minHeight: '20px' }}
                            >
-                              {userData.cuisineStats.map((cuisineStat, cuisineIndex) => {
-                                if (cuisineStat.count === 0) return null;
-                                const stackHeight = cuisineStat.count * barScale;
-                                const colorClass = cuisineColors[cuisineIndex % cuisineColors.length];
-
-                                return (
-                                  <div
-                                    key={cuisineStat.cuisine}
-                                    className={`w-full bg-gradient-to-t ${colorClass} transition-all duration-300`}
-                                    style={{
-                                      height: `${Math.max(stackHeight, 2)}px`,
-                                      boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)'
-                                    }}
-                                    title={`${cuisineStat.cuisine}: ${cuisineStat.count}`}
-                                  >
-                                    {stackHeight > 15 && (
-                                      <div className="flex items-center justify-center h-full text-[10px] text-white font-medium drop-shadow-sm">
-                                        {cuisineStat.count}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
+                              {barHeight > 20 && (
+                                <div className="text-white text-sm font-bold mb-1 drop-shadow-sm">
+                                   {master.mealCount}
+                                </div>
+                              )}
                            </div>
 
                            {/* 用户头像 */}
                            <div
-                              className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold mb-1"
+                              className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold mb-1 overflow-hidden"
                               style={{
                                 background: 'linear-gradient(135deg, rgb(251 191 36) 0%, rgb(245 158 11) 100%)',
                                 boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)'
                               }}
                            >
-                              {userData.displayName?.charAt(0)?.toUpperCase() || '?'}
-                           </div>
-
-                           {/* 菜系数量 */}
-                           <div className="text-sm font-bold text-gray-700 dark:text-gray-300">
-                              {userData.cuisineStats.length} {lang === Language.ZH ? '种菜系' : 'cuisines'}
+                              {avatarContent}
                            </div>
 
                            {/* 用户名 */}
                            <div className="text-xs text-gray-500 mt-1 text-center max-w-[80px] truncate">
-                              {userData.displayName}
+                              {master.username}
                            </div>
                         </div>
                       );

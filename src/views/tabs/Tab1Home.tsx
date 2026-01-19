@@ -3,12 +3,12 @@ import { motion } from 'framer-motion';
 import { UtensilsCrossed } from 'lucide-react';
 import { Card } from '../../components/UIComponents';
 import { MealDetailModal } from '../../components/MealDetailModal';
-import { useMeals } from '../../hooks/useMeals';
+import { useBackendMeals } from '../../hooks/useBackendMeals';
 import { Language, Theme, TEXT } from '../../types';
 import { useMinDelay } from '../../hooks/useMinDelay';
 import { SkeletonMealItem } from '../../components/ui/skeleton';
 import { useToastNotification } from '@/contexts/ToastContext';
-import type { Meal } from '../../db';
+import type { MealResponse } from '@/api/types';
 
 interface Tab1HomeProps {
   lang: Language;
@@ -112,7 +112,7 @@ function IngredientCard({
   theme: Theme;
   index: number;
 }) {
-  const cardBg = theme === 'dark' ? 'bg-[#2C2C2E]' : 'bg-[#F5F0E8]';
+  const cardBg = theme === 'dark' ? 'bg-[#2C2C2E]' : 'bg-white border border-gray-200';
   const textColor = theme === 'dark' ? 'text-white' : 'text-gray-800';
   const descColor = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
 
@@ -268,7 +268,7 @@ function FanCardStack({
   lang,
   theme
 }: {
-  meal: Meal;
+  meal: MealResponse;
   lang: Language;
   theme: Theme;
 }) {
@@ -311,7 +311,7 @@ function MealCard({
   index,
   onClick
 }: {
-  meal: Meal;
+  meal: MealResponse;
   lang: Language;
   theme: Theme;
   index: number;
@@ -326,8 +326,11 @@ function MealCard({
   const tagBg = theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100';
 
   // Filter out garnishes from ingredients
-  const mainIngredients = (meal.analysis.ingredients || [])
-    .filter(ing => !GARNISH_INGREDIENTS.some(g => ing.name.includes(g)))
+  // Backend returns ingredients as string[], frontend may expect object array
+  const rawIngredients = meal.analysis?.ingredients || [];
+  const mainIngredients = rawIngredients
+    .map(ing => typeof ing === 'string' ? { name: ing } : ing)
+    .filter(ing => ing && ing.name && typeof ing.name === 'string' && !GARNISH_INGREDIENTS.some(g => ing.name.includes(g)))
     .slice(0, 3);
 
   return (
@@ -459,23 +462,23 @@ function MealCard({
 }
 
 const Tab1Home: React.FC<Tab1HomeProps> = ({ lang, theme, refreshTrigger, userId }) => {
-  const { meals, isLoading, refresh, deleteMeal, updateMeal } = useMeals(userId);
+  const { meals, isLoading, refresh, deleteMeal, updateMeal } = useBackendMeals(userId, lang, 5);
   const { showSkeleton } = useMinDelay(isLoading, 300);
   const { showSuccess, showError } = useToastNotification();
   const t = TEXT[lang];
 
   // State for meal detail modal
-  const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
+  const [selectedMeal, setSelectedMeal] = useState<MealResponse | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Handle meal card click
-  const handleMealClick = (meal: Meal) => {
+  const handleMealClick = (meal: MealResponse) => {
     setSelectedMeal(meal);
     setIsModalOpen(true);
   };
 
   // Handle delete
-  const handleDeleteMeal = async (meal: Meal) => {
+  const handleDeleteMeal = async (meal: MealResponse) => {
     // Confirmation is now handled within MealDetailModal
     await deleteMeal(meal.id);
     setIsModalOpen(false);
@@ -483,7 +486,7 @@ const Tab1Home: React.FC<Tab1HomeProps> = ({ lang, theme, refreshTrigger, userId
   };
 
   // Handle share
-  const handleShareMeal = async (meal: Meal) => {
+  const handleShareMeal = async (meal: MealResponse) => {
     if (navigator.share) {
       await navigator.share({
         title: meal.analysis.foodName,
@@ -494,9 +497,13 @@ const Tab1Home: React.FC<Tab1HomeProps> = ({ lang, theme, refreshTrigger, userId
   };
 
   // Handle update meal - inline editing from detail modal
-  const handleUpdateMeal = async (meal: Meal) => {
+  const handleUpdateMeal = async (meal: MealResponse) => {
     try {
-      await updateMeal(meal);
+      // Only send the fields that can be updated (mealType and notes)
+      await updateMeal(meal.id, {
+        mealType: meal.mealType,
+        notes: meal.notes,
+      });
       showSuccess(
         lang === Language.ZH ? '保存成功' : 'Saved',
         lang === Language.ZH ? '餐品信息已更新' : 'Meal updated successfully'
@@ -522,14 +529,20 @@ const Tab1Home: React.FC<Tab1HomeProps> = ({ lang, theme, refreshTrigger, userId
     const ingredientMap = new Map<string, { name: string; icon: string; description: string }>();
 
     meals.forEach(meal => {
-      (meal.analysis.ingredients || []).forEach(ing => {
+      const ingredients = meal.analysis?.ingredients || [];
+      // Backend returns ingredients as string[], frontend expects object array
+      ingredients.forEach(ing => {
+        // Handle both string and object formats
+        const ingredientName = typeof ing === 'string' ? ing : ing?.name;
+        if (!ingredientName || typeof ingredientName !== 'string') return;
+
         // Filter out garnishes
-        if (!GARNISH_INGREDIENTS.some(g => ing.name.includes(g))) {
-          if (!ingredientMap.has(ing.name)) {
-            ingredientMap.set(ing.name, {
-              name: ing.name,
-              icon: ing.icon || getIngredientIcon(ing.name),
-              description: ing.description || getIngredientDescription(ing.name, lang)
+        if (!GARNISH_INGREDIENTS.some(g => ingredientName.includes(g))) {
+          if (!ingredientMap.has(ingredientName)) {
+            ingredientMap.set(ingredientName, {
+              name: ingredientName,
+              icon: typeof ing === 'object' ? ing.icon || getIngredientIcon(ingredientName) : getIngredientIcon(ingredientName),
+              description: typeof ing === 'object' ? ing.description || getIngredientDescription(ingredientName, lang) : getIngredientDescription(ingredientName, lang)
             });
           }
         }

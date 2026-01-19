@@ -463,8 +463,8 @@ export function RegisterView({ language, theme, onBack, onLoginClick, onRegister
       return;
     }
 
-    if (password.length < 6) {
-      setError(language === Language.ZH ? '密码至少需要6个字符' : 'Password must be at least 6 characters');
+    if (password.length < 8) {
+      setError(language === Language.ZH ? '密码至少需要8个字符' : 'Password must be at least 8 characters');
       return;
     }
 
@@ -502,7 +502,7 @@ export function RegisterView({ language, theme, onBack, onLoginClick, onRegister
     login: language === Language.ZH ? '立即登录' : 'Login now',
     usernamePlaceholder: language === Language.ZH ? '请输入用户名（至少3个字符）' : 'Enter username (min 3 characters)',
     displayNamePlaceholder: language === Language.ZH ? '请输入显示名称（可选）' : 'Enter display name (optional)',
-    passwordPlaceholder: language === Language.ZH ? '请输入密码（至少6个字符）' : 'Enter password (min 6 characters)',
+    passwordPlaceholder: language === Language.ZH ? '请输入密码（至少8个字符）' : 'Enter password (min 8 characters)',
     confirmPasswordPlaceholder: language === Language.ZH ? '请再次输入密码' : 'Enter password again',
   };
 
@@ -592,7 +592,7 @@ export function RegisterView({ language, theme, onBack, onLoginClick, onRegister
                 label={`${t.password} *`}
                 placeholder={t.passwordPlaceholder}
                 required
-                minLength={6}
+                minLength={8}
                 icon={<Lock size={20} />}
                 showPasswordToggle
                 showPassword={showPassword}

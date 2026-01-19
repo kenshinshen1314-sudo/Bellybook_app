@@ -5,7 +5,7 @@
   --radius: 20px;
 
   /* Light Mode Colors */
-  --background: oklch(0.8798 0.0534 91.7893);
+  --background: #ffffff;
   --foreground: oklch(0.4265 0.0310 59.2153);
 
   --primary: oklch(0.6657 0.1050 118.9078);

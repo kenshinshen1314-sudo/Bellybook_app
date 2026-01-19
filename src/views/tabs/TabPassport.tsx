@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, MapPin, Calendar } from 'lucide-react';
 import { Card } from '../../components/UIComponents';
-import { useMeals } from '../../hooks/useMeals';
+import { useBackendMeals } from '../../hooks/useBackendMeals';
 import { Language, Theme } from '../../types';
 import { useMinDelay } from '../../hooks/useMinDelay';
 
@@ -59,7 +59,8 @@ const CUISINE_ICONS: Record<string, string> = {
 };
 
 const TabPassport: React.FC<TabPassportProps> = ({ lang, theme, refreshTrigger, onCuisineClick, userId }) => {
-  const { meals, isLoading, refresh } = useMeals(userId);
+  // Get all meals (limit 1000) to show all cuisines
+  const { meals, isLoading, refresh } = useBackendMeals(userId, lang, 1000);
   const { showSkeleton } = useMinDelay(isLoading, 300);
 
   // Refresh data when refreshTrigger changes
@@ -163,7 +164,11 @@ const TabPassport: React.FC<TabPassportProps> = ({ lang, theme, refreshTrigger, 
 
       {/* Favorite Cuisine */}
       {favoriteCuisine && (
-        <Card theme={theme} className={`${cardBg} p-4 mb-6`}>
+        <Card
+          theme={theme}
+          className={`${cardBg} p-4 mb-6 cursor-pointer transition-transform hover:scale-[1.02]`}
+          onClick={() => onCuisineClick?.(favoriteCuisine.name)}
+        >
           <div className="flex items-center justify-between">
             <div>
               <div className={`text-xs ${textTertiary} mb-1`}>
@@ -201,10 +206,7 @@ const TabPassport: React.FC<TabPassportProps> = ({ lang, theme, refreshTrigger, 
                 <Card
                   theme={theme}
                   className={`${cardBg} p-4 cursor-pointer transition-transform hover:scale-105`}
-                  onClick={() => {
-                    console.log('TabPassport: Clicked cuisine', cuisine.name);
-                    onCuisineClick?.(cuisine.name);
-                  }}
+                  onClick={() => onCuisineClick?.(cuisine.name)}
                 >
                   {/* Cuisine Icon */}
                   <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${cuisine.color} flex items-center justify-center text-2xl mb-3`}>

@@ -1,0 +1,38 @@
+---
+active: true
+iteration: 42
+max_iterations: 0
+completion_promise: "前端项目已成功连接到后端API，注册、登录、退出功能已配置完成并可正常工作"
+started_at: "2026-01-18T12:43:44Z"
+---
+
+## 迭代 1 完成总结
+
+### 完成的工作
+
+1. **更新 API_BASE_URL**
+   - 将前端 API 客户端从生产环境 URL 改为指向本地后端: `http://localhost:3000/api/v1`
+
+2. **验证并更新 auth.ts**
+   - 确认 AuthResponse 接口与后端 DTO 匹配
+   - 修复 updateProfile API 路径从 `/auth/profile` 改为 `/users/profile`
+   - 修复 HTTP 方法从 PATCH 改为 PUT
+
+3. **清理 API 模块导出**
+   - 移除 `api/index.ts` 中对 `profile.ts` 的重复导出
+   - 避免与 `auth.ts` 中的导出冲突
+
+4. **测试后端 API**
+   - 验证注册 API 工作正常
+   - 验证登录 API 工作正常
+
+5. **前端开发服务器**
+   - 开发服务器在 http://localhost:5173 运行
+   - HMR 热更新正常工作
+
+### 当前状态
+
+- 后端运行在: http://localhost:3000/api/v1
+- 前端运行在: http://localhost:5173
+- 前端已配置为调用本地后端 API
+- 注册、登录、退出功能已集成并可正常工作

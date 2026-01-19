@@ -159,7 +159,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = useCallback(async () => {
     setIsLoading(true);
     try {
-      authService.logout();
+      await authService.logout();
       setUser(null);
       console.log('[Auth] User logged out');
     } catch (error) {

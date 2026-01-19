@@ -33,6 +33,7 @@ export interface AnalysisResult {
   };
   ingredients?: Ingredient[];
   suggestions: string[];
+  dishSuggestion?: string;
   description: string;
   plating: string;
   sensory: string;
