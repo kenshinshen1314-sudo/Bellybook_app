@@ -7,6 +7,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from './ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProfile } from '@/hooks/useProfile';
+import * as api from '@/api';
 import { Language, Theme } from '@/types';
 import type { UserProfile } from '@/db';
 
@@ -48,16 +49,44 @@ export function ProfileEdit({
       return;
     }
 
+    console.log('[ProfileEdit] Starting profile save...');
+    console.log('[ProfileEdit] Current values:', { displayName: profile.displayName, bio: profile.bio });
+    console.log('[ProfileEdit] New values:', { displayName: editDisplayName, bio: editBio });
+
     setIsSaving(true);
     try {
-      // Save to IndexedDB
+      // 1. Save to IndexedDB (local cache)
+      console.log('[ProfileEdit] Saving to IndexedDB...');
       await saveProfile({
         ...profile,
         displayName: editDisplayName,
         bio: editBio,
       });
+      console.log('[ProfileEdit] IndexedDB saved successfully');
 
-      // Update auth context if displayName changed
+      // 2. Update backend API (sync to Supabase)
+      console.log('[ProfileEdit] Calling backend API /users/profile...');
+      try {
+        const updateData = {
+          displayName: editDisplayName,
+          bio: editBio,
+        };
+        console.log('[ProfileEdit] Update data:', updateData);
+        const response = await api.profile.update(updateData);
+        console.log('[ProfileEdit] Backend API response:', response);
+        console.log('[ProfileEdit] Backend updated successfully');
+      } catch (apiError: any) {
+        console.error('[ProfileEdit] Backend update failed (will sync later):', apiError);
+        console.error('[ProfileEdit] Error name:', apiError?.name);
+        console.error('[ProfileEdit] Error message:', apiError?.message);
+        console.error('[ProfileEdit] Error status:', apiError?.status);
+        console.error('[ProfileEdit] Error code:', apiError?.code);
+        console.error('[ProfileEdit] Error details:', apiError?.details);
+        console.error('[ProfileEdit] Full error:', JSON.stringify(apiError, Object.getOwnPropertyNames(apiError), 2));
+        // Continue even if backend fails - it will sync later
+      }
+
+      // 3. Update auth context if displayName changed
       if (user && user.displayName !== editDisplayName) {
         // Update the user in localStorage
         const sessionData = localStorage.getItem('bellybook_session');
@@ -71,6 +100,7 @@ export function ProfileEdit({
       onSave();
     } catch (error) {
       console.error('[ProfileEdit] Failed to save profile:', error);
+      throw error; // Re-throw to let caller handle
     } finally {
       setIsSaving(false);
     }

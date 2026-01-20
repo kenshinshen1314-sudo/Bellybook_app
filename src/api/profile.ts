@@ -119,21 +119,24 @@ export const profile = {
    * Get current user profile
    */
   get: async (): Promise<ApiResponse<{ profile: any; settings: any }>> => {
-    return apiClient.get<ApiResponse<any>>('/profile');
+    return apiClient.get<ApiResponse<any>>('/users/profile');
   },
 
   /**
    * Update user profile
    */
   update: async (data: UpdateProfileDto): Promise<ApiResponse<any>> => {
-    return apiClient.patch<ApiResponse<any>>('/profile', data);
+    console.log('[profile.update] Calling PUT /users/profile with data:', data);
+    const result = await apiClient.put<ApiResponse<any>>('/users/profile', data);
+    console.log('[profile.update] Response:', result);
+    return result;
   },
 
   /**
    * Update user settings
    */
   updateSettings: async (data: UpdateSettingsDto): Promise<ApiResponse<any>> => {
-    return apiClient.patch<ApiResponse<any>>('/profile/settings', data);
+    return apiClient.put<ApiResponse<any>>('/users/settings', data);
   },
 
   /**
@@ -144,7 +147,7 @@ export const profile = {
     formData.append('avatar', file);
 
     const token = tokenManager.getAccessToken();
-    const response = await fetch('/api/v1/profile/avatar', {
+    const response = await fetch('/api/v1/users/profile/avatar', {
       method: 'POST',
       headers: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -163,6 +166,6 @@ export const profile = {
    * Delete user account
    */
   deleteAccount: async (): Promise<ApiResponse<{ success: boolean }>> => {
-    return apiClient.delete<ApiResponse<{ success: boolean }>>('/profile');
+    return apiClient.delete<ApiResponse<{ success: boolean }>>('/users/account');
   },
 };

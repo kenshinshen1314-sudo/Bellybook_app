@@ -35,6 +35,7 @@ export {
 export { ApiRequestError } from './client';
 
 // Re-export API modules
+export { auth, profile } from './profile';
 export { meals } from './meals';
 export { ranking } from './ranking';
 export { sync } from './sync';

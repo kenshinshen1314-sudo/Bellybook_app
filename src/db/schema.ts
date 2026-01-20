@@ -30,7 +30,9 @@ export interface UserSettings {
   language: 'zh' | 'en';
   theme: 'light' | 'dark' | 'auto';
   notificationsEnabled: boolean;
-  reminderTime?: string; // HH:mm format
+  breakfastReminderTime?: string; // HH:mm format
+  lunchReminderTime?: string; // HH:mm format
+  dinnerReminderTime?: string; // HH:mm format
   hideRanking?: boolean; // Privacy setting
   premiumExpiresAt?: string | null; // ISO timestamp or null
 }

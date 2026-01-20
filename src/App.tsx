@@ -10,6 +10,7 @@ import { SyncStatus } from './components/SyncStatus';
 import { ConflictBanner } from './components/ConflictBanner';
 import { ConflictResolutionModal } from './components/ConflictResolutionModal';
 import { ProfileEdit } from './components/ProfileEdit';
+import { TimePicker } from './components/TimePicker';
 import { fadeInUp, pageTransition } from './lib/motion';
 import { useOnline } from './hooks/useOnline';
 import { useProfile } from './hooks/useProfile';
@@ -22,6 +23,8 @@ import { LimitReachedOverlay } from './components/LimitReachedOverlay';
 import { getMealsByDateRange } from './hooks/useMeals';
 import { useAuth } from './contexts/AuthContext';
 import { LoginView, RegisterView } from './views/AuthViews';
+import { useUserUnlockedDishes } from './hooks/useUserUnlockedDishes';
+import * as api from './api';
 
 // Lazy load tabs for code splitting
 const Tab1Home = React.lazy(() => import('./views/tabs/Tab1Home'));
@@ -74,13 +77,21 @@ export default function App() {
   // Global meals data for sub-views - pass userId to get correct user's meals
   const { meals, refresh: refreshMeals } = useMeals(userId);
 
+  // User stats (cuisines, dishes)
+  const { data: statsData, refresh: refreshStats } = useUserUnlockedDishes(userId);
+
+  // Derived stats from backend
+  const statsCuisineCount = statsData ? new Set(statsData.dishes.map(d => d.cuisine)).size : 0;
+  const statsDishCount = statsData?.totalDishes || 0;
+
   // Refresh meals when refreshTrigger changes
   useEffect(() => {
     if (refreshTrigger > 0) {
-      console.log('[App] Refreshing meals due to refreshTrigger:', refreshTrigger);
+      console.log('[App] Refreshing meals and stats due to refreshTrigger:', refreshTrigger);
       refreshMeals();
+      refreshStats();
     }
-  }, [refreshTrigger, refreshMeals]);
+  }, [refreshTrigger, refreshMeals, refreshStats]);
 
   // Swipe navigation for tabs
   const { swipeHandlers, canSwipeLeft, canSwipeRight } = useTabSwipeNavigation({
@@ -125,7 +136,22 @@ export default function App() {
   // Settings State
   const [notifications, setNotifications] = useState({
     reminders: true,
+    breakfastReminderTime: '08:00',
+    lunchReminderTime: '12:00',
+    dinnerReminderTime: '18:00',
   });
+
+  // Initialize notifications from backend settings
+  useEffect(() => {
+    if (settings) {
+      setNotifications({
+        reminders: settings.notificationsEnabled ?? true,
+        breakfastReminderTime: settings.breakfastReminderTime ?? '08:00',
+        lunchReminderTime: settings.lunchReminderTime ?? '12:00',
+        dinnerReminderTime: settings.dinnerReminderTime ?? '18:00',
+      });
+    }
+  }, [settings]);
 
   const [privacy, setPrivacy] = useState({
     hideRanking: false,
@@ -203,12 +229,108 @@ export default function App() {
     }, 2000);
   };
 
-  const toggleNotification = () => {
-    setNotifications(prev => ({ ...prev, reminders: !prev.reminders }));
+  const toggleNotification = async () => {
+    const newValue = !notifications.reminders;
+    // Update local state first for immediate feedback
+    setNotifications(prev => ({ ...prev, reminders: newValue }));
+
+    // Sync to backend
+    try {
+      await api.profile.updateSettings({
+        notificationsEnabled: newValue,
+        breakfastReminderTime: notifications.breakfastReminderTime,
+        lunchReminderTime: notifications.lunchReminderTime,
+        dinnerReminderTime: notifications.dinnerReminderTime,
+      });
+      console.log('[App] Notification settings updated:', {
+        notificationsEnabled: newValue,
+        breakfastReminderTime: notifications.breakfastReminderTime,
+        lunchReminderTime: notifications.lunchReminderTime,
+        dinnerReminderTime: notifications.dinnerReminderTime,
+      });
+    } catch (error) {
+      console.error('[App] Failed to update notification settings:', error);
+      // Revert on error
+      setNotifications(prev => ({ ...prev, reminders: !newValue }));
+    }
   };
 
-  const togglePrivacy = () => {
-    setPrivacy(prev => ({ ...prev, hideRanking: !prev.hideRanking }));
+  const handleBreakfastReminderTimeChange = async (newTime: string) => {
+    // Update local state first for immediate feedback
+    setNotifications(prev => ({ ...prev, breakfastReminderTime: newTime }));
+
+    // Sync to backend
+    try {
+      await api.profile.updateSettings({
+        notificationsEnabled: notifications.reminders,
+        breakfastReminderTime: newTime,
+        lunchReminderTime: notifications.lunchReminderTime,
+        dinnerReminderTime: notifications.dinnerReminderTime,
+      });
+      console.log('[App] Breakfast reminder time updated:', { breakfastReminderTime: newTime });
+    } catch (error) {
+      console.error('[App] Failed to update breakfast reminder time:', error);
+      // Revert on error
+      setNotifications(prev => ({ ...prev, breakfastReminderTime: notifications.breakfastReminderTime }));
+    }
+  };
+
+  const handleLunchReminderTimeChange = async (newTime: string) => {
+    // Update local state first for immediate feedback
+    setNotifications(prev => ({ ...prev, lunchReminderTime: newTime }));
+
+    // Sync to backend
+    try {
+      await api.profile.updateSettings({
+        notificationsEnabled: notifications.reminders,
+        breakfastReminderTime: notifications.breakfastReminderTime,
+        lunchReminderTime: newTime,
+        dinnerReminderTime: notifications.dinnerReminderTime,
+      });
+      console.log('[App] Lunch reminder time updated:', { lunchReminderTime: newTime });
+    } catch (error) {
+      console.error('[App] Failed to update lunch reminder time:', error);
+      // Revert on error
+      setNotifications(prev => ({ ...prev, lunchReminderTime: notifications.lunchReminderTime }));
+    }
+  };
+
+  const handleDinnerReminderTimeChange = async (newTime: string) => {
+    // Update local state first for immediate feedback
+    setNotifications(prev => ({ ...prev, dinnerReminderTime: newTime }));
+
+    // Sync to backend
+    try {
+      await api.profile.updateSettings({
+        notificationsEnabled: notifications.reminders,
+        breakfastReminderTime: notifications.breakfastReminderTime,
+        lunchReminderTime: notifications.lunchReminderTime,
+        dinnerReminderTime: newTime,
+      });
+      console.log('[App] Dinner reminder time updated:', { dinnerReminderTime: newTime });
+    } catch (error) {
+      console.error('[App] Failed to update dinner reminder time:', error);
+      // Revert on error
+      setNotifications(prev => ({ ...prev, dinnerReminderTime: notifications.dinnerReminderTime }));
+    }
+  };
+
+  const togglePrivacy = async () => {
+    const newValue = !privacy.hideRanking;
+    // Update local state first for immediate feedback
+    setPrivacy(prev => ({ ...prev, hideRanking: newValue }));
+
+    // Sync to backend
+    try {
+      await api.profile.updateSettings({
+        hideRanking: newValue,
+      });
+      console.log('[App] Privacy settings updated:', { hideRanking: newValue });
+    } catch (error) {
+      console.error('[App] Failed to update privacy settings:', error);
+      // Revert on error
+      setPrivacy(prev => ({ ...prev, hideRanking: !newValue }));
+    }
   };
 
   // Apply dark mode class to document
@@ -267,8 +389,8 @@ export default function App() {
         <div className="h-[40vh] w-full rounded-3xl overflow-hidden mb-6 relative">
           <img src={uploadState.imageUrl || ''} className="w-full h-full object-cover" alt="Captured" />
           {uploadState.isUploading && (
-            <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center">
-              <Loader2 className="w-8 h-8 text-white animate-spin mb-2" />
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent p-4 flex items-center justify-center">
+              <Loader2 className="w-5 h-5 text-white animate-spin mr-2" />
               <span className="text-white text-sm font-medium">{language === Language.ZH ? '上传分析中...' : 'Uploading & Analyzing...'}</span>
             </div>
           )}
@@ -552,7 +674,9 @@ export default function App() {
 
             <div className="p-4 space-y-6">
               <div className="flex justify-between items-center px-2">
-                <div className="text-sm text-muted-foreground">0 {t.meals} • 0 {t.cuisines} {t.unlocked}</div>
+                <div className="text-sm text-muted-foreground">
+                  {statsDishCount} {t.dishes_count} • {statsCuisineCount} {t.cuisine_count} {t.unlocked}
+                </div>
                 <Button variant="outline" className="h-8 px-4 text-xs py-0" onClick={navigateToPremium}>{t.unlock_btn}</Button>
               </div>
 
@@ -566,12 +690,6 @@ export default function App() {
                         theme={theme}
                         label={t.edit_profile}
                         onClick={() => setCurrentView(AppView.PROFILE_EDIT)}
-                      />
-                      <ListItem
-                        theme={theme}
-                        label={language === Language.ZH ? '退出登录' : 'Logout'}
-                        icon={<LogOut size={16} />}
-                        onClick={() => setShowLogoutModal(true)}
                       />
                     </>
                   ) : (
@@ -614,6 +732,21 @@ export default function App() {
                   <ListItem theme={theme} label="Feedback" icon={<MessageSquare size={16} />} />
                 </div>
               </div>
+
+              {/* Logout Button at the bottom */}
+              {isAuthenticated && (
+                <div className="pt-4 pb-12">
+                  <div className={`${profileBgClass} rounded-xl overflow-hidden border border-destructive/20`}>
+                    <ListItem
+                      theme={theme}
+                      label={language === Language.ZH ? '退出登录' : 'Logout'}
+                      icon={<LogOut size={16} className="text-destructive" />}
+                      onClick={() => setShowLogoutModal(true)}
+                      className="text-destructive font-medium"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -666,7 +799,7 @@ export default function App() {
               <h1 className={`text-3xl font-bold mt-4 ${profileTextClass}`}>{t.notify_header}</h1>
               <p className="text-muted-foreground text-sm mt-1 mb-8">{t.notify_sub}</p>
 
-              <div className={`${profileBgClass} rounded-2xl overflow-hidden mb-8`}>
+              <div className={`${profileBgClass} rounded-2xl overflow-hidden mb-4`}>
                 <ToggleItem
                   theme={theme}
                   label={t.notify_toggle_title}
@@ -675,6 +808,62 @@ export default function App() {
                   onToggle={toggleNotification}
                 />
               </div>
+
+              {/* Meal Reminder Time Pickers */}
+              {notifications.reminders && (
+                <>
+                  {/* Breakfast Time Picker */}
+                  <div className={`${profileBgClass} rounded-2xl overflow-hidden mb-4`}>
+                    <div className="p-4">
+                      <div className={`text-sm font-semibold mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                        {language === Language.ZH ? '早餐提醒' : 'Breakfast Reminder'}
+                      </div>
+                      <TimePicker
+                        value={notifications.breakfastReminderTime}
+                        onChange={handleBreakfastReminderTimeChange}
+                        language={language}
+                        theme={theme}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Lunch Time Picker */}
+                  <div className={`${profileBgClass} rounded-2xl overflow-hidden mb-4`}>
+                    <div className="p-4">
+                      <div className={`text-sm font-semibold mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                        {language === Language.ZH ? '午餐提醒' : 'Lunch Reminder'}
+                      </div>
+                      <TimePicker
+                        value={notifications.lunchReminderTime}
+                        onChange={handleLunchReminderTimeChange}
+                        language={language}
+                        theme={theme}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Dinner Time Picker */}
+                  <div className={`${profileBgClass} rounded-2xl overflow-hidden mb-8`}>
+                    <div className="p-4">
+                      <div className={`text-sm font-semibold mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                        {language === Language.ZH ? '晚餐提醒' : 'Dinner Reminder'}
+                      </div>
+                      <TimePicker
+                        value={notifications.dinnerReminderTime}
+                        onChange={handleDinnerReminderTimeChange}
+                        language={language}
+                        theme={theme}
+                      />
+                    </div>
+                  </div>
+
+                  <p className={`text-xs text-muted-foreground mb-8 text-center`}>
+                    {language === Language.ZH
+                      ? '在设定时间发送饮食记录提醒'
+                      : 'Receive meal reminders at scheduled times'}
+                  </p>
+                </>
+              )}
 
               <h3 className="text-sm font-medium text-muted-foreground mb-2">{t.notify_footer_title}</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">

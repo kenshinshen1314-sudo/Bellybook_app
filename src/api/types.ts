@@ -114,7 +114,10 @@ export interface UpdateSettingsDto {
   language?: 'zh' | 'en';
   theme?: 'light' | 'dark' | 'auto';
   notificationsEnabled?: boolean;
-  reminderTime?: string;
+  breakfastReminderTime?: string;
+  lunchReminderTime?: string;
+  dinnerReminderTime?: string;
+  hideRanking?: boolean;
 }
 
 /**

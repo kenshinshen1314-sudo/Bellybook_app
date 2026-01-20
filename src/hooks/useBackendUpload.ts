@@ -52,7 +52,15 @@ export function useBackendUpload(): BackendUploadResult {
     setQuotaExceeded(false);
     setQuotaInfo(undefined);
     setAnalysis(null);
-    setImageUrl(null);
+
+    // Immediately show the local image as base64 for better UX
+    try {
+      const localImageUrl = await fileToBase64(file);
+      setImageUrl(localImageUrl);
+    } catch (err) {
+      console.error('[useBackendUpload] Failed to read local file:', err);
+      // Continue anyway, backend upload will work
+    }
 
     try {
       // Call backend API for upload + analysis
@@ -81,7 +89,7 @@ export function useBackendUpload(): BackendUploadResult {
         imageUrl: upload.url,
       };
 
-      // Update state
+      // Update state with server URL (replaces local base64)
       setImageUrl(upload.url);
       setAnalysis(frontendAnalysis);
 
