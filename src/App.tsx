@@ -11,6 +11,7 @@ import { ConflictBanner } from './components/ConflictBanner';
 import { ConflictResolutionModal } from './components/ConflictResolutionModal';
 import { ProfileEdit } from './components/ProfileEdit';
 import { TimePicker } from './components/TimePicker';
+import { cn } from './lib/utils';
 import { fadeInUp, pageTransition } from './lib/motion';
 import { useOnline } from './hooks/useOnline';
 import { useProfile } from './hooks/useProfile';
@@ -524,7 +525,10 @@ export default function App() {
 
                               {/* Row 2: Nutrition Data */}
                               {dish.nutrition && (
-                                <div className="py-3 pb-4 flex items-center justify-between text-sm border-b border-border">
+                                <div className={cn(
+                                  "py-3 pb-4 flex items-center justify-between text-sm",
+                                  index === dishes.length - 1 ? "" : "border-b border-border"
+                                )}>
                                   {/* Calories */}
                                   <span className="font-medium text-orange-500">
                                     {Math.round(dish.nutrition.calories || 0)} kcal
