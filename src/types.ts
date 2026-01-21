@@ -22,7 +22,7 @@ export interface Ingredient {
   percentage: number;
 }
 
-export interface AnalysisResult {
+export interface DishNutrition {
   foodName: string;
   cuisine?: string;
   nutrition?: {
@@ -31,6 +31,20 @@ export interface AnalysisResult {
     fat: number;
     carbohydrates: number;
   };
+}
+
+export interface AnalysisResult {
+  // Single dish (legacy support)
+  foodName: string;
+  cuisine?: string;
+  nutrition?: {
+    calories: number;
+    protein: number;
+    fat: number;
+    carbohydrates: number;
+  };
+  // Multiple dishes (new)
+  dishes?: DishNutrition[];
   ingredients?: Ingredient[];
   suggestions: string[];
   dishSuggestion?: string;
