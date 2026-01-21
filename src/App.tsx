@@ -19,12 +19,14 @@ import { useBackendUpload } from './hooks/useBackendUpload';
 import { DAILY_ANALYSIS_LIMIT } from './config';
 import { useTabSwipeNavigation, springConfig, tabVariants, getSlideDirection } from './hooks/useSwipeNavigation';
 import { useTabBarHide } from './hooks/useScrollHide';
-import { ChevronLeft, Check, Copy, Share2, MessageSquare, Star, Settings, X, ChevronRight, Clock, ArrowLeft, Zap, BookOpen, FileText, BarChart3, Edit3, Loader2, Cloud, LogOut } from 'lucide-react';
+import { ChevronLeft, Check, Copy, Share2, MessageSquare, Star, Settings, X, ChevronRight, Clock, ArrowLeft, Zap, BookOpen, FileText, BarChart3, Edit3, Loader2, Cloud, LogOut, Palette } from 'lucide-react';
 import { LimitReachedOverlay } from './components/LimitReachedOverlay';
 import { CircularProgress } from './components/CircularProgress';
 import { getMealsByDateRange } from './hooks/useMeals';
 import { useAuth } from './contexts/AuthContext';
 import { LoginView, RegisterView } from './views/AuthViews';
+import { AnalysisResultView } from './views/AnalysisResultView';
+import { DesignSystemView } from './views/DesignSystemView';
 import { useUserUnlockedDishes } from './hooks/useUserUnlockedDishes';
 import * as api from './api';
 
@@ -396,218 +398,15 @@ export default function App() {
 
   // 1. Analysis View
   if (currentView === AppView.ANALYSIS_RESULT) {
-    // Simulated progress for upload state
-    const simulatedProgress = analysisProgress;
-
     return (
-      <div className={`min-h-screen ${mainBgClass} p-4 safe-top animate-fade-in relative`}>
-        <button onClick={navigateBack} className="absolute top-safe-top left-4 z-50 w-10 h-10 bg-black/50 rounded-full flex items-center justify-center text-white">
-          <ChevronLeft size={24} />
-        </button>
-
-        {/* Error State */}
-        {uploadState.error && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mx-4 mt-safe-top bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-xl"
-          >
-            <p className="text-sm font-medium">{uploadState.error}</p>
-            {uploadState.quotaExceeded && uploadState.quotaInfo && (
-              <p className="text-xs mt-2">
-                {language === Language.ZH ? '每日限额' : 'Daily limit'}: {uploadState.quotaInfo.limit}
-                | {language === Language.ZH ? '剩余' : 'Remaining'}: {uploadState.quotaInfo.remaining}
-              </p>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-2"
-              onClick={() => {
-                resetUpload();
-                navigateBack();
-              }}
-            >
-              {language === Language.ZH ? '返回' : 'Back'}
-            </Button>
-          </motion.div>
-        )}
-
-        {/* Top: Two Cards Side by Side */}
-        <div className="grid grid-cols-2 gap-3 mt-safe-top mb-4">
-          {/* Left Card: Uploaded Image */}
-          <Card className="overflow-hidden">
-            <div className="aspect-square w-full relative">
-              {uploadState.imageUrl ? (
-                <img
-                  src={uploadState.imageUrl}
-                  className="w-full h-full object-cover"
-                  alt="Uploaded dish"
-                />
-              ) : (
-                <div className="w-full h-full bg-muted flex items-center justify-center">
-                  <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-                </div>
-              )}
-            </div>
-          </Card>
-
-          {/* Right Card: Progress Circle */}
-          <Card className="flex flex-col items-center justify-center p-4">
-            <CircularProgress progress={simulatedProgress} size={100} />
-            <p className="text-sm font-medium mt-3 text-center">
-              {uploadState.isUploading
-                ? (language === Language.ZH ? '智能分析中' : 'Analyzing...')
-                : (language === Language.ZH ? '分析完成' : 'Analysis Complete')}
-            </p>
-          </Card>
-        </div>
-
-        {/* Bottom: Three Cards */}
-        {!uploadState.isUploading && uploadState.analysis ? (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="space-y-3 pb-10"
-          >
-            {/* Card 1: Suggestions */}
-            <Card className="p-4">
-              <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">
-                {language === Language.ZH ? '生成建议' : 'Suggestions'}
-              </h3>
-              <p className="text-sm text-foreground leading-relaxed">
-                {uploadState.analysis.dishSuggestion || (uploadState.analysis.suggestions?.map((s, i) => s).join(' ') || '-')}
-              </p>
-            </Card>
-
-            {/* Card 2: Nutrition Analysis */}
-            <Card className="p-4">
-              <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">
-                {language === Language.ZH ? '营养构成' : 'Nutrition Facts'}
-              </h3>
-              <div>
-                {uploadState.analysis && (
-                  <>
-                    {/* Get dishes array or fallback to single dish */}
-                    {(() => {
-                      const dishes = uploadState.analysis.dishes || (
-                        uploadState.analysis.foodName ? [{
-                          foodName: uploadState.analysis.foodName,
-                          cuisine: uploadState.analysis.cuisine,
-                          nutrition: uploadState.analysis.nutrition,
-                        }] : []
-                      );
-
-                      // Calculate total calories
-                      const totalCalories = dishes.reduce((sum, dish) =>
-                        sum + (dish.nutrition?.calories || 0), 0
-                      );
-
-                      return (
-                        <>
-                          {/* Display each dish */}
-                          {dishes.map((dish, index) => (
-                            <div key={index} className={index > 0 ? 'mt-3' : ''}>
-                              {/* Row 1: Dish Name */}
-                              <div className="py-3">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-base font-medium">
-                                    {dish.foodName || (language === Language.ZH ? '未知食物' : 'Unknown Food')}
-                                  </span>
-                                  {dish.cuisine && (
-                                    <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">
-                                      {dish.cuisine}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Row 2: Nutrition Data */}
-                              {dish.nutrition && (
-                                <div className={cn(
-                                  "py-3 pb-4 flex items-center justify-between text-sm",
-                                  index === dishes.length - 1 ? "" : "border-b border-border"
-                                )}>
-                                  {/* Calories */}
-                                  <span className="font-medium text-orange-500">
-                                    {Math.round(dish.nutrition.calories || 0)} kcal
-                                  </span>
-                                  {/* Protein */}
-                                  <span className="font-medium text-red-500">
-                                    P: {Math.round(dish.nutrition.protein || 0)}g
-                                  </span>
-                                  {/* Fat */}
-                                  <span className="font-medium text-yellow-500">
-                                    F: {Math.round(dish.nutrition.fat || 0)}g
-                                  </span>
-                                  {/* Carbs */}
-                                  <span className="font-medium text-green-500">
-                                    C: {Math.round(dish.nutrition.carbohydrates || 0)}g
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-
-                          {/* Total Calories Summary */}
-                          {dishes.length > 0 && dishes.some(d => d.nutrition) && (
-                            <div className="flex items-center justify-between pt-3 mt-2 border-t-2 border-border">
-                              <span className="text-sm font-semibold text-foreground">
-                                {language === Language.ZH ? '总热量' : 'Total Calories'}
-                              </span>
-                              <span className="text-lg font-bold text-orange-500">
-                                {Math.round(totalCalories)} kcal
-                              </span>
-                            </div>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </>
-                )}
-              </div>
-            </Card>
-
-            {/* Card 3: Image Recognition / Description */}
-            <Card className="p-4">
-              <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-2">
-                {language === Language.ZH ? '识别图像' : 'Image Recognition'}
-              </h3>
-              <p className="text-sm text-foreground leading-relaxed">
-                {uploadState.analysis.description || (language === Language.ZH ? '暂无描述' : 'No description available')}
-              </p>
-            </Card>
-
-            {/* Success Message - Backend auto-saves */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="text-center text-sm text-green-600 dark:text-green-400 mt-4"
-            >
-              {language === Language.ZH ? '记录已自动保存到云端' : 'Record automatically saved to cloud'}
-              {uploadState.quotaInfo && (
-                <span className="block text-xs mt-1 text-muted-foreground">
-                  ({language === Language.ZH ? '今日剩余' : 'Today remaining'}: {uploadState.quotaInfo.remaining}/{uploadState.quotaInfo.limit})
-                </span>
-              )}
-            </motion.div>
-
-            {/* Back to Home Button */}
-            <Button
-              onClick={navigateBack}
-              className="w-full py-6 text-lg font-semibold mt-4"
-              size="lg"
-            >
-              {language === Language.ZH ? '保存记录' : 'Save Record'}
-            </Button>
-          </motion.div>
-        ) : !uploadState.isUploading && !uploadState.error && (
-          <div className="text-center mt-10 text-muted-foreground">
-            {language === Language.ZH ? '分析失败，请重试' : 'Analysis Failed. Please try again.'}
-          </div>
-        )}
-      </div>
+      <AnalysisResultView
+        uploadState={uploadState}
+        analysisProgress={analysisProgress}
+        language={language}
+        mainBgClass={mainBgClass}
+        navigateBack={navigateBack}
+        resetUpload={resetUpload}
+      />
     );
   }
 
@@ -818,6 +617,7 @@ export default function App() {
                 <h3 className="text-xs text-muted-foreground ml-4 mb-2">Info</h3>
                 <div className={`${profileBgClass} rounded-xl overflow-hidden`}>
                   <ListItem theme={theme} label="About 2.0" icon={<div className="w-5 h-5 rounded-full border border-gray-500 flex items-center justify-center text-[10px]">i</div>} />
+                  <ListItem theme={theme} label="Design System" icon={<Palette size={16} />} onClick={() => setCurrentView(AppView.DESIGN_SYSTEM)} />
                   <ListItem theme={theme} label="Share with Friends" icon={<Share2 size={16} />} />
                   <ListItem theme={theme} label="Rate App" icon={<Star size={16} />} />
                   <ListItem theme={theme} label="Feedback" icon={<MessageSquare size={16} />} />
@@ -1143,6 +943,11 @@ export default function App() {
 
       </div>
     );
+  }
+
+  // 2b. Design System View
+  if (currentView === AppView.DESIGN_SYSTEM) {
+    return <DesignSystemView language={language} theme={theme} onBack={navigateToProfile} />;
   }
 
   // 3. Premium View

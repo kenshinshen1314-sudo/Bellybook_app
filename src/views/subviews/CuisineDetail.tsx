@@ -140,20 +140,22 @@ export const CuisineDetail: React.FC<CuisineDetailProps> = ({
               const meal = item.latest;
               const analysis = meal.analysis as AnalysisResult;
               const date = new Date(meal.createdAt).toLocaleDateString(lang === Language.ZH ? 'zh-CN' : 'en-US');
+              // Get food name from dishes array (new format) or fallback to foodName (old format)
+              const foodName = analysis.dishes?.[0]?.foodName || analysis.foodName || 'Unknown';
 
               return (
                 <motion.div
-                  key={analysis.foodName}
+                  key={meal.id}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => onDishClick(analysis.foodName)}
+                  onClick={() => onDishClick(foodName)}
                 >
                   <Card className={`p-3 flex items-center space-x-4 border-none shadow-sm ${isDark ? 'bg-[#1C1C1E]' : 'bg-white'}`}>
                     <div className="w-16 h-16 rounded-xl overflow-hidden bg-gray-200 flex-shrink-0">
-                      <img src={meal.thumbnailUrl || meal.imageUrl} className="w-full h-full object-cover" alt={analysis.foodName} />
+                      <img src={meal.thumbnailUrl || meal.imageUrl} className="w-full h-full object-cover" alt={foodName} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center space-x-2">
-                        <h3 className={`font-bold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{analysis.foodName}</h3>
+                        <h3 className={`font-bold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>{foodName}</h3>
                       </div>
                       <p className={`text-xs mt-1 ${isDark ? 'text-gray-500' : 'text-gray-500'}`}>
                         {t.tasted_times} {item.count} {t.times} · {date}

@@ -95,9 +95,13 @@ export function useConflicts(): UseConflictsReturn {
   const getConflictInfo = useCallback((conflict: Conflict) => {
     switch (conflict.entityType) {
       case 'meal':
+        // Get food name from dishes array (new format) or fallback to foodName (old format)
+        const getFoodName = (analysis: any) =>
+          analysis?.dishes?.[0]?.foodName || analysis?.foodName || 'Unknown';
+
         return {
           mealId: conflict.entityId,
-          foodName: conflict.clientData.analysis?.foodName || conflict.serverData.analysis?.foodName || 'Unknown',
+          foodName: getFoodName(conflict.clientData.analysis) || getFoodName(conflict.serverData.analysis) || 'Unknown',
           clientChanges: {
             mealType: conflict.clientData.mealType,
             notes: conflict.clientData.notes,

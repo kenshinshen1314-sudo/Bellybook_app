@@ -22,10 +22,13 @@ export interface Ingredient {
   percentage: number;
 }
 
+/**
+ * 单个菜品的营养信息
+ */
 export interface DishNutrition {
   foodName: string;
-  cuisine?: string;
-  nutrition?: {
+  cuisine: string;
+  nutrition: {
     calories: number;
     protein: number;
     fat: number;
@@ -33,33 +36,29 @@ export interface DishNutrition {
   };
 }
 
+/**
+ * AI 分析结果
+ * 统一 API 契约：始终返回 dishes 数组（单菜品也是数组长度为 1）
+ */
 export interface AnalysisResult {
-  // Single dish (legacy support)
-  foodName: string;
-  cuisine?: string;
-  nutrition?: {
+  // 核心：菜品数组（统一数据结构，无歧义）
+  dishes: DishNutrition[];
+  // 总营养数据（所有菜品汇总）
+  nutrition: {
     calories: number;
     protein: number;
     fat: number;
     carbohydrates: number;
   };
-  // Multiple dishes (new)
-  dishes?: DishNutrition[];
+  // 其他元数据
   ingredients?: Ingredient[];
-  suggestions: string[];
+  suggestions?: string[];
   dishSuggestion?: string;
   description: string;
-  plating: string;
-  sensory: string;
-  container: string;
+  plating?: string;
+  sensory?: string;
+  container?: string;
   imageUrl?: string;
-  // Legacy fields for backward compatibility
-  calories?: number;
-  macros?: {
-    protein: string;
-    fat: string;
-    carbs: string;
-  };
   poeticDescription?: string;
   nutritionCommentary?: string;
   historicalBackground?: string;
@@ -87,7 +86,9 @@ export enum AppView {
   PASSPORT_DISH_DETAIL = 'PASSPORT_DISH_DETAIL',
   // Auth Views
   AUTH_LOGIN = 'AUTH_LOGIN',
-  AUTH_REGISTER = 'AUTH_REGISTER'
+  AUTH_REGISTER = 'AUTH_REGISTER',
+  // Design System
+  DESIGN_SYSTEM = 'DESIGN_SYSTEM'
 }
 
 export const TEXT = {

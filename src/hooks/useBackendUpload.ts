@@ -74,13 +74,10 @@ export function useBackendUpload(): BackendUploadResult {
 
       // Convert backend analysis to frontend format
       const frontendAnalysis: AnalysisResult = {
-        foodName: backendAnalysis.foodName,
-        cuisine: backendAnalysis.cuisine,
+        dishes: backendAnalysis.dishes || [],
+        nutrition: backendAnalysis.nutrition || { calories: 0, protein: 0, fat: 0, carbohydrates: 0 },
         plating: backendAnalysis.plating,
-        sensory: backendAnalysis.sensory,
-        container: backendAnalysis.container,
         description: backendAnalysis.description,
-        nutrition: backendAnalysis.nutrition,
         ingredients: backendAnalysis.ingredients,
         suggestions: backendAnalysis.suggestions,
         dishSuggestion: backendAnalysis.dishSuggestion,

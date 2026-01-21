@@ -361,7 +361,11 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                                     <>
                                         {/* Display Title */}
                                         <h3 className={`text-base font-semibold mb-3 ${textColor}`}>
-                                            {localMeal.analysis.foodNamePoetic || (lang === Language.ZH ? `暮光中的${localMeal.analysis.foodName}私语` : `Whispers of ${localMeal.analysis.foodName}`)}
+                                            {localMeal.analysis.foodNamePoetic || (
+                                              lang === Language.ZH
+                                                ? `暮光中的${(localMeal.analysis.dishes?.[0]?.foodName || localMeal.analysis.foodName || '菜品')}私语`
+                                                : `Whispers of ${localMeal.analysis.dishes?.[0]?.foodName || localMeal.analysis.foodName || 'Dish'}`
+                                            )}
                                         </h3>
                                         {/* Display Description */}
                                         <p className={`text-sm leading-relaxed ${secondaryText}`}>

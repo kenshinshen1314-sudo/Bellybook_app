@@ -187,7 +187,7 @@ export const DishDetail: React.FC<DishDetailProps> = ({
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className={`font-bold text-sm truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
-                        {meal.analysis?.poeticDescription || meal.analysis?.foodName || (lang === Language.ZH ? '无标题' : 'No Title')}
+                        {meal.analysis?.poeticDescription || meal.analysis?.dishes?.[0]?.foodName || meal.analysis?.foodName || (lang === Language.ZH ? '无标题' : 'No Title')}
                       </h4>
                       <p className="text-xs text-gray-500 truncate">
                         {lang === Language.ZH ? `共 ${meal.analysis?.ingredients?.length || 0} 种食物` : `${meal.analysis?.ingredients?.length || 0} Ingredients`}
