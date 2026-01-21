@@ -84,8 +84,8 @@ const Tab3Discovery: React.FC<Tab3DiscoveryProps> = ({ lang, theme }) => {
                     tickLine={false}
                     axisLine={false}
                 />
-               <Tooltip 
-                    contentStyle={{ backgroundColor: tooltipBg, border: 'none', borderRadius: '8px', color: tooltipColor, boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+               <Tooltip
+                    contentStyle={{ backgroundColor: tooltipBg, border: 'none', borderRadius: '20px', color: tooltipColor, boxShadow: '0 4px 12px color-mix(in srgb, var(--foreground) 15%, transparent), inset 0 1px 0 color-mix(in srgb, var(--background) 80%, white)' }}
                />
                <Line type="monotone" dataKey="cal" stroke={theme === 'dark' ? "#E5E7EB" : "#333"} strokeWidth={2} dot={{fill: theme === 'dark' ? '#E5E7EB' : '#333', r: 3}} activeDot={{r: 5}} />
              </LineChart>

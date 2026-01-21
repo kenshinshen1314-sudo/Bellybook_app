@@ -80,7 +80,11 @@ const Tab4Social: React.FC<Tab4SocialProps> = ({ lang, theme, onExpertsClick, on
                         <div className={`w-8 text-center text-lg mr-3 ${expert.rank <= 3 ? '' : 'text-gray-500'}`}>
                            {getBadge()}
                         </div>
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center mr-3 text-white text-sm font-bold overflow-hidden">
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center mr-3 text-white text-lg font-bold overflow-hidden"
+                           style={{
+                             background: 'linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, black) 100%)',
+                             boxShadow: '0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)'
+                           }}>
                            {avatarContent}
                         </div>
                         <div className="flex-1">
@@ -192,8 +196,8 @@ const Tab4Social: React.FC<Tab4SocialProps> = ({ lang, theme, onExpertsClick, on
                               <div
                                  className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold mb-1 overflow-hidden"
                                  style={{
-                                   background: 'linear-gradient(135deg, rgb(251 191 36) 0%, rgb(245 158 11) 100%)',
-                                   boxShadow: '0 4px 12px rgba(245, 158, 11, 0.3), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)'
+                                   background: 'linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, black) 100%)',
+                                   boxShadow: '0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)'
                                  }}
                               >
                                  {avatarContent}

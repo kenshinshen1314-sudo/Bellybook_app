@@ -92,10 +92,12 @@ export const CuisineDetailPage: React.FC<CuisineDetailPageProps> = ({
             <div className="flex-1 min-w-0">
               <div className="flex items-center space-x-3 mb-2">
                 <div className={cn(
-                  "w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/70",
-                  "flex items-center justify-center text-white text-sm font-bold flex-shrink-0",
-                  "shadow-lg border border-white/20"
-                )}>
+                  "w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold flex-shrink-0"
+                )}
+                style={{
+                  background: 'linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, black) 100%)',
+                  boxShadow: '0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)'
+                }}>
                   {displayName?.charAt(0)?.toUpperCase() || '?'}
                 </div>
                 <div>
@@ -333,10 +335,12 @@ export const LeaderboardPage: React.FC<LeaderboardProps> = ({ title, type, lang,
                       {getBadge()}
                     </div>
                     <div className={cn(
-                      "w-12 h-12 rounded-full bg-gradient-to-br from-primary to-primary/70",
-                      "flex items-center justify-center mr-4 text-white text-sm font-bold",
-                      "shadow-[0_4px_12px_color-mix(in_srgb,var(--primary)_35%,_transparent),inset_0_1px_0_rgba(255,255,255,0.2),inset_0_-1px_0_rgba(0,0,0,0.1)]"
-                    )}>
+                      "w-12 h-12 rounded-full flex items-center justify-center mr-4 text-white text-lg font-bold"
+                    )}
+                    style={{
+                      background: 'linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, black) 100%)',
+                      boxShadow: '0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)'
+                    }}>
                       {displayName?.charAt(0)?.toUpperCase() || '?'}
                     </div>
                     <div className="flex-1">

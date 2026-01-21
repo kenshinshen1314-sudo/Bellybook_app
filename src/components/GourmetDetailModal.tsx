@@ -177,10 +177,12 @@ export function GourmetDetailModal({
                       />
                     ) : (
                       <div className={cn(
-                        "w-20 h-20 rounded-full flex items-center justify-center text-white font-bold text-3xl flex-shrink-0",
-                        "bg-gradient-to-br from-amber-400 to-orange-500",
-                        "shadow-[0_4px_12px_rgba(245,158,11,0.35)]"
-                      )}>
+                        "w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold flex-shrink-0"
+                      )}
+                      style={{
+                        background: 'linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, black) 100%)',
+                        boxShadow: '0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)'
+                      }}>
                         {gourmet.username?.charAt(0)?.toUpperCase() || '?'}
                       </div>
                     )}
@@ -265,7 +267,10 @@ export function GourmetDetailModal({
                                 initial={{ width: 0 }}
                                 animate={{ width: `${item.percentage}%` }}
                                 transition={{ type: "spring", stiffness: 300, damping: 30, delay: index * 0.05 + 0.1 }}
-                                className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full"
+                                className="h-full rounded-full"
+                                style={{
+                                  background: 'linear-gradient(90deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 70%, black) 100%)'
+                                }}
                               />
                             </div>
                           </div>

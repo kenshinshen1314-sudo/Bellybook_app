@@ -543,9 +543,26 @@ export default function App() {
             <div className="h-64 bg-cover bg-center relative" style={{ backgroundImage: 'url(https://picsum.photos/800/600?food)' }}>
               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/90"></div>
               <div className="absolute bottom-4 left-4 flex items-end">
-                <div className="w-20 h-20 rounded-full border-2 border-white bg-gray-200 overflow-hidden mr-4">
-                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || 'default'}`} alt="Avatar" />
-                </div>
+                {user?.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt="Avatar"
+                    className="w-12 h-12 rounded-full border-2 border-white object-cover mr-4"
+                    style={{
+                      boxShadow: '0 4px 12px color-mix(in srgb, var(--foreground) 15%, transparent), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)'
+                    }}
+                  />
+                ) : (
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold mr-4 overflow-hidden"
+                    style={{
+                      background: 'linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, black) 100%)',
+                      boxShadow: '0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)'
+                    }}
+                  >
+                    {user?.username?.charAt(0)?.toUpperCase() || '?'}
+                  </div>
+                )}
                 <div className="mb-2">
                   <h1 className="text-2xl font-bold text-white">
                     {profile?.displayName || user?.displayName || (isAuthenticated ? 'User' : (language === Language.ZH ? '访客' : 'Guest'))}
@@ -1138,8 +1155,20 @@ export default function App() {
       {/* Top Bar for Main Tabs */}
       <div className="fixed top-0 left-0 right-0 h-[50px] z-40 flex items-center justify-between px-4 mt-safe-top bg-gradient-to-b from-background/80 to-transparent">
         {/* Top Left: User Avatar (Profile) - Replaces Tomato for Passport feel */}
-        <div onClick={navigateToProfile} className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center cursor-pointer shadow-lg overflow-hidden border border-white/20 relative">
-          <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Profile" className="w-full h-full object-cover" />
+        <div onClick={navigateToProfile} className="w-12 h-12 rounded-full cursor-pointer overflow-hidden relative"
+             style={{
+               boxShadow: '0 4px 12px color-mix(in srgb, var(--foreground) 15%, transparent), inset 0 1px 0 color-mix(in srgb, var(--background) 80%, white), inset 0 -1px 0 color-mix(in srgb, var(--foreground) 5%, black)'
+             }}>
+          {user?.avatarUrl ? (
+            <img src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-white text-lg font-bold"
+                 style={{
+                   background: 'linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, black) 100%)'
+                 }}>
+              {user?.username?.charAt(0)?.toUpperCase() || '?'}
+            </div>
+          )}
         </div>
 
         {/* Title changes based on tab */}

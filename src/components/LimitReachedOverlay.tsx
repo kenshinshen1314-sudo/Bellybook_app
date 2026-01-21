@@ -34,7 +34,11 @@ export const LimitReachedOverlay: React.FC<LimitReachedOverlayProps> = ({ onDism
                     <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-[#1C1C1E] opacity-90"></div>
 
                     <div className="absolute bottom-0 left-0 right-0 p-6 text-center pb-10">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-yellow-400 to-orange-500 mx-auto mb-4 flex items-center justify-center shadow-lg shadow-orange-500/30">
+                        <div className="w-12 h-12 rounded-full mx-auto mb-4 flex items-center justify-center text-white"
+                            style={{
+                              background: 'linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, black) 100%)',
+                              boxShadow: '0 6px 20px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)'
+                            }}>
                             <span className="text-2xl">🔒</span>
                         </div>
                         <h2 className="text-xl font-bold text-white mb-3">

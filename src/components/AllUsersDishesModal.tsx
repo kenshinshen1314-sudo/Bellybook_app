@@ -268,10 +268,12 @@ export function AllUsersDishesModal({
                               />
                             ) : (
                               <div className={cn(
-                                "w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0",
-                                "bg-gradient-to-br from-amber-400 to-orange-500",
-                                "shadow-[0_4px_12px_rgba(245,158,11,0.35)]"
-                              )}>
+                                "w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
+                              )}
+                              style={{
+                                background: 'linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, black) 100%)',
+                                boxShadow: '0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)'
+                              }}>
                                 {entry.username?.charAt(0)?.toUpperCase() || '?'}
                               </div>
                             )}

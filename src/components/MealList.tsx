@@ -196,7 +196,7 @@ function MealItem({
             initial={{ width: 0 }}
             animate={{ width: `${progress * 100}%` }}
             transition={{ duration: 0.02 }}
-            style={{ borderRadius: '0 0 12px 12px' }}
+            style={{ borderRadius: '0 0 20px 20px' }}
           />
         )}
 
