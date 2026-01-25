@@ -4,11 +4,14 @@ import { UtensilsCrossed } from 'lucide-react';
 import { Card } from '../../components/UIComponents';
 import { MealDetailModal } from '../../components/MealDetailModal';
 import { useBackendMeals } from '../../hooks/useBackendMeals';
+import { useUserUnlockedDishes } from '../../hooks/useUserUnlockedDishes';
+import { useThemeStyles } from '../../hooks/useThemeStyles';
 import { Language, Theme, TEXT } from '../../types';
 import { useMinDelay } from '../../hooks/useMinDelay';
 import { SkeletonMealItem } from '../../components/ui/skeleton';
 import { useToastNotification } from '@/contexts/ToastContext';
 import type { MealResponse } from '@/api/types';
+import { logger } from '@/utils/logger';
 
 interface Tab1HomeProps {
   lang: Language;
@@ -76,7 +79,8 @@ function getIngredientDescription(name: string, lang: Language): string {
 
 // Cuisine tag mapping
 function getCuisineTag(cuisine: string | undefined, lang: Language): string {
-  if (!cuisine) return lang === Language.ZH ? '家常菜' : 'Home Cooking';
+  // Show "未知菜系" consistently when cuisine is undefined (same as Passport tab)
+  if (!cuisine) return lang === Language.ZH ? '未知菜系' : 'Unknown';
   const cuisineMap: Record<string, { zh: string; en: string }> = {
     '中餐': { zh: '中餐', en: 'Chinese' },
     '粤菜': { zh: '粤菜', en: 'Cantonese' },
@@ -112,24 +116,23 @@ function IngredientCard({
   theme: Theme;
   index: number;
 }) {
-  const cardBg = theme === 'dark' ? 'bg-[#2C2C2E]' : 'bg-white border border-gray-200';
-  const textColor = theme === 'dark' ? 'text-white' : 'text-gray-800';
-  const descColor = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
+  const styles = useThemeStyles(theme);
+  const tagBg = theme === 'dark' ? 'bg-gray-700' : 'bg-white/70';
 
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.05 }}
-      className={`${cardBg} rounded-2xl p-4 min-w-[140px] max-w-[160px]`}
+      className={`${styles.bgCard} ${styles.border} rounded-2xl p-4 min-w-[140px] max-w-[160px]`}
     >
       <div className="flex items-center justify-between mb-2">
-        <span className={`text-sm font-bold ${textColor} px-2 py-0.5 rounded-full ${theme === 'dark' ? 'bg-gray-700' : 'bg-white/70'}`}>
+        <span className={`text-sm font-bold ${styles.textTitle} px-2 py-0.5 rounded-full ${tagBg}`}>
           {name}
         </span>
         <span className="text-2xl">{icon}</span>
       </div>
-      <p className={`text-xs ${descColor} line-clamp-2 leading-relaxed`}>
+      <p className={`text-xs ${styles.textSecondary} line-clamp-2 leading-relaxed`}>
         {description}
       </p>
     </motion.div>
@@ -152,14 +155,11 @@ function NutritionFanCard({
   isOnTop: boolean;
   onClick: () => void;
 }) {
-  const textColor = theme === 'dark' ? 'text-white' : 'text-gray-800';
-  const subTextColor = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
-  const borderColor = theme === 'dark' ? 'border-gray-600' : 'border-gray-300';
-  const bgColor = theme === 'dark' ? 'bg-[#2C2C2E]' : 'bg-white';
+  const styles = useThemeStyles(theme);
 
   return (
     <motion.div
-      className={`absolute ${bgColor} rounded-2xl p-3 cursor-pointer border ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'}`}
+      className={`absolute ${styles.bgCard} rounded-2xl p-3 cursor-pointer border ${styles.border}`}
       style={{
         width: 150,
         height: 180,
@@ -175,42 +175,42 @@ function NutritionFanCard({
       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
       onClick={onClick}
     >
-      <div className={`text-xs font-bold ${textColor} mb-1 border-b ${borderColor} pb-1`}>
+      <div className={`text-xs font-bold ${styles.textTitle} mb-1 border-b ${styles.border} pb-1`}>
         {lang === Language.ZH ? '胃之书营养卡片' : 'Bellybook Nutrition'}
       </div>
-      <div className={`text-[10px] ${subTextColor} mb-2`}>
+      <div className={`text-[10px] ${styles.textSecondary} mb-2`}>
         {lang === Language.ZH ? '本餐营养学分析' : 'Meal Nutrition Analysis'}
       </div>
       <div className="space-y-1">
         <div className="flex justify-between items-center">
-          <span className={`text-xs font-medium ${textColor}`}>
+          <span className={`text-xs font-medium ${styles.textTitle}`}>
             {lang === Language.ZH ? '卡路里' : 'Calories'}
           </span>
-          <span className={`text-sm font-bold ${textColor}`}>
+          <span className={`text-sm font-bold ${styles.textTitle}`}>
             {Math.round(nutrition.calories)}
           </span>
         </div>
         <div className="flex justify-between items-center">
-          <span className={`text-[10px] ${subTextColor}`}>
+          <span className={`text-[10px] ${styles.textSecondary}`}>
             {lang === Language.ZH ? '脂肪' : 'Fat'}
           </span>
-          <span className={`text-xs font-medium ${textColor}`}>
+          <span className={`text-xs font-medium ${styles.textTitle}`}>
             {nutrition.fat.toFixed(1)}g
           </span>
         </div>
         <div className="flex justify-between items-center">
-          <span className={`text-[10px] ${subTextColor}`}>
+          <span className={`text-[10px] ${styles.textSecondary}`}>
             {lang === Language.ZH ? '蛋白质' : 'Protein'}
           </span>
-          <span className={`text-xs font-medium ${textColor}`}>
+          <span className={`text-xs font-medium ${styles.textTitle}`}>
             {Math.round(nutrition.protein)}g
           </span>
         </div>
         <div className="flex justify-between items-center">
-          <span className={`text-[10px] ${subTextColor}`}>
+          <span className={`text-[10px] ${styles.textSecondary}`}>
             {lang === Language.ZH ? '碳水' : 'Carbs'}
           </span>
-          <span className={`text-xs font-medium ${textColor}`}>
+          <span className={`text-xs font-medium ${styles.textTitle}`}>
             {Math.round(nutrition.carbohydrates)}g
           </span>
         </div>
@@ -309,21 +309,54 @@ function MealCard({
   lang,
   theme,
   index,
-  onClick
+  onClick,
+  dishToCuisineMap
 }: {
   meal: MealResponse;
   lang: Language;
   theme: Theme;
   index: number;
   onClick?: () => void;
+  dishToCuisineMap: Map<string, string>;
 }) {
+  const styles = useThemeStyles(theme);
   const date = new Date(meal.createdAt);
   const day = date.getDate();
-
-  const textTitle = theme === 'dark' ? 'text-white' : 'text-gray-900';
-  const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
-  const cardBg = theme === 'dark' ? 'bg-[#1C1C1E]' : 'bg-white';
   const tagBg = theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100';
+
+  // Helper function to get dish name from meal (supports both old and new data structures)
+  // When multiple dishes are detected, concatenate all dish names
+  const getDishName = (): string => {
+    const dishes = meal.analysis?.dishes;
+    if (dishes && dishes.length > 0) {
+      // Get all dish names and join them with "、" (Chinese enumeration comma)
+      const dishNames = dishes
+        .map(d => d.foodName || d.name || '')
+        .filter(name => name.trim() !== '');
+      return dishNames.join('、');
+    }
+    return meal.analysis?.foodName || '';
+  };
+
+  // Helper function to get cuisine(s) from meal
+  // When multiple dishes with different cuisines are detected, show all cuisines
+  const getMealCuisines = (): string => {
+    const dishes = meal.analysis?.dishes;
+    if (dishes && dishes.length > 0) {
+      // Get all unique cuisines from dishes
+      const cuisines = dishes
+        .map(d => d.cuisine)
+        .filter(c => c && c.trim() !== '');
+      // Remove duplicates while preserving order
+      const uniqueCuisines = Array.from(new Set(cuisines));
+      // Join with "、" (Chinese enumeration comma)
+      return uniqueCuisines.join('、');
+    }
+    return meal.analysis?.cuisine || '';
+  };
+
+  const dishName = getDishName();
+  const mealCuisines = getMealCuisines(); // Get all cuisines involved
 
   // Filter out garnishes from ingredients
   // Backend returns ingredients as string[], frontend may expect object array
@@ -332,6 +365,37 @@ function MealCard({
     .map(ing => typeof ing === 'string' ? { name: ing } : ing)
     .filter(ing => ing && ing.name && typeof ing.name === 'string' && !GARNISH_INGREDIENTS.some(g => ing.name.includes(g)))
     .slice(0, 3);
+
+  // Get cuisine tag(s) - use all cuisines from dishes array
+  // When multiple cuisines are involved, show all of them
+  const cuisineTag = (() => {
+    if (mealCuisines) {
+      // Split cuisines by "、" and translate each one
+      const cuisineList = mealCuisines.split('、').filter(c => c.trim());
+      if (cuisineList.length === 0) {
+        return getCuisineTag('', lang);
+      }
+      // Translate each cuisine and join back
+      const translatedCuisines = cuisineList.map(c => {
+        const tag = getCuisineTag(c, lang);
+        // Remove the "菜" suffix if present (already in the tag)
+        return tag;
+      });
+      return translatedCuisines.join('、');
+    }
+    // Fallback to unknown if no cuisine found
+    return getCuisineTag('', lang);
+  })();
+
+  // Debug log for first meal only
+  if (index === 0) {
+    logger.debug('[MealCard] Meal cuisine data:', {
+      dishName,
+      cuisineFromDishes: meal.analysis?.dishes?.map(d => d.cuisine),
+      cuisineTag,
+      mealCuisines
+    });
+  }
 
   return (
     <motion.div
@@ -342,8 +406,8 @@ function MealCard({
     >
       {/* Date indicator and Fan Cards */}
       <div className="flex items-start gap-3 mb-3">
-        <div className={`text-2xl font-bold ${textTitle} min-w-[48px]`}>
-          {day}<span className={`text-sm ${textSecondary} ml-0.5`}>|</span>
+        <div className={`text-2xl font-bold ${styles.textTitle} min-w-[48px]`}>
+          {day}<span className={`text-sm ${styles.textSecondary} ml-0.5`}>|</span>
         </div>
 
         {/* Fan Card Stack - Image and Nutrition toggle */}
@@ -403,16 +467,16 @@ function MealCard({
 
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <span className={`font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'}`}>
+                  <span className={`font-bold ${styles.textTitle}`}>
                     {ingredient.name}
                   </span>
                   <span className="text-lg">{getIngredientIcon(ingredient.name)}</span>
                 </div>
                 <span className={`text-xs px-2 py-0.5 rounded ${theme === 'dark' ? 'bg-black/20 text-gray-300' : 'bg-black/10 text-gray-700'}`}>
-                  {getCuisineTag(meal.analysis.cuisine, lang)}
+                  {cuisineTag}
                 </span>
               </div>
-              <p className={`text-xs leading-relaxed ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+              <p className={`text-xs leading-relaxed ${styles.textSecondary}`}>
                 {ingredient.description || getIngredientDescription(ingredient.name, lang)}
               </p>
             </motion.div>
@@ -442,16 +506,16 @@ function MealCard({
             />
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
-                <span className={`font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'}`}>
-                  {meal.analysis.foodName}
+                <span className={`font-bold ${styles.textTitle}`}>
+                  {dishName}
                 </span>
                 <span className="text-lg">🍽️</span>
               </div>
               <span className={`text-xs px-2 py-0.5 rounded ${theme === 'dark' ? 'bg-black/20 text-gray-300' : 'bg-black/10 text-gray-700'}`}>
-                {getCuisineTag(meal.analysis.cuisine, lang)}
+                {cuisineTag}
               </span>
             </div>
-            <p className={`text-xs leading-relaxed ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+            <p className={`text-xs leading-relaxed ${styles.textSecondary}`}>
               {meal.analysis.description || (lang === Language.ZH ? '美味的一餐' : 'A delicious meal')}
             </p>
           </motion.div>
@@ -463,6 +527,7 @@ function MealCard({
 
 const Tab1Home: React.FC<Tab1HomeProps> = ({ lang, theme, refreshTrigger, userId }) => {
   const { meals, isLoading, refresh, deleteMeal, updateMeal } = useBackendMeals(userId, lang, 5);
+  const { data: unlockedDishesData } = useUserUnlockedDishes(userId);
   const { showSkeleton } = useMinDelay(isLoading, 300);
   const { showSuccess, showError } = useToastNotification();
   const t = TEXT[lang];
@@ -470,6 +535,39 @@ const Tab1Home: React.FC<Tab1HomeProps> = ({ lang, theme, refreshTrigger, userId
   // State for meal detail modal
   const [selectedMeal, setSelectedMeal] = useState<MealResponse | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Create mapping from dish name to correct cuisine for accurate display
+  // This fixes the issue where meal.analysis.cuisine is empty from backend
+  const dishToCuisineMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (unlockedDishesData?.dishes) {
+      unlockedDishesData.dishes.forEach(dish => {
+        // Store exact match
+        map.set(dish.dishName, dish.cuisine);
+        // Also store trimmed versions for flexible matching
+        map.set(dish.dishName.trim(), dish.cuisine);
+      });
+      logger.debug('[Tab1Home] dishToCuisineMap created with entries:', map.size);
+      logger.debug('[Tab1Home] Sample dish mappings:', Array.from(map.entries()).slice(0, 5));
+      logger.debug('[Tab1Home] Available dish names in map:', Array.from(map.keys()));
+    } else {
+      logger.warn('[Tab1Home] No unlockedDishesData available', {
+        hasUnlockedDishesData: !!unlockedDishesData,
+        dishes: unlockedDishesData?.dishes
+      });
+    }
+
+    // Log actual meals data for comparison
+    logger.debug('[Tab1Home] Actual meals data:', meals.map(m => ({
+      id: m.id,
+      foodName: m.analysis?.foodName,
+      cuisine: m.analysis?.cuisine,
+      fullAnalysis: m.analysis,
+      fullMeal: m
+    })));
+
+    return map;
+  }, [unlockedDishesData]);
 
   // Handle meal card click
   const handleMealClick = (meal: MealResponse) => {
@@ -509,7 +607,7 @@ const Tab1Home: React.FC<Tab1HomeProps> = ({ lang, theme, refreshTrigger, userId
         lang === Language.ZH ? '餐品信息已更新' : 'Meal updated successfully'
       );
     } catch (error) {
-      console.error('Failed to update meal:', error);
+      logger.error('[Tab1Home] Failed to update meal:', error);
       showError(
         lang === Language.ZH ? '保存失败' : 'Save Failed',
         lang === Language.ZH ? '请重试' : 'Please try again'
@@ -552,9 +650,7 @@ const Tab1Home: React.FC<Tab1HomeProps> = ({ lang, theme, refreshTrigger, userId
     return Array.from(ingredientMap.values()).slice(0, 10); // Limit to 10
   }, [meals, lang]);
 
-  const textTitle = theme === 'dark' ? 'text-white/90' : 'text-black/90';
-  const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
-  const cardBg = theme === 'dark' ? 'bg-[#1C1C1E]' : 'bg-white';
+  const styles = useThemeStyles(theme);
 
   // Loading skeleton
   if (showSkeleton) {
@@ -569,7 +665,7 @@ const Tab1Home: React.FC<Tab1HomeProps> = ({ lang, theme, refreshTrigger, userId
   if (meals.length === 0) {
     return (
       <div className="pb-28 pt-24 px-4 animate-fade-in">
-        <Card theme={theme} className={`${cardBg} h-64 flex flex-col items-center justify-center p-6`}>
+        <Card theme={theme} className={`${styles.bgCard} h-64 flex flex-col items-center justify-center p-6`}>
           <div className="w-16 h-16 mb-4 opacity-70">
             <UtensilsCrossed className={`w-full h-full ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}`} />
           </div>
@@ -589,7 +685,7 @@ const Tab1Home: React.FC<Tab1HomeProps> = ({ lang, theme, refreshTrigger, userId
       {/* 近期解锁 Section - Horizontal Scroll Ingredient Cards */}
       {allIngredients.length > 0 && (
         <section className="mb-8">
-          <h2 className={`text-lg font-semibold mb-3 ${textTitle}`}>
+          <h2 className={`text-lg font-semibold mb-3 ${styles.textTitle}`}>
             {t.recent_unlocks}
           </h2>
           <div className="overflow-x-auto pb-2">
@@ -611,7 +707,7 @@ const Tab1Home: React.FC<Tab1HomeProps> = ({ lang, theme, refreshTrigger, userId
 
       {/* 近期饮食 Section - Meal Cards with Overlay */}
       <section>
-        <h2 className={`text-lg font-semibold mb-4 ${textTitle}`}>
+        <h2 className={`text-lg font-semibold mb-4 ${styles.textTitle}`}>
           {t.recent_meals}
         </h2>
 
@@ -623,6 +719,7 @@ const Tab1Home: React.FC<Tab1HomeProps> = ({ lang, theme, refreshTrigger, userId
             theme={theme}
             index={index}
             onClick={() => handleMealClick(meal)}
+            dishToCuisineMap={dishToCuisineMap}
           />
         ))}
       </section>

@@ -7,6 +7,9 @@
 import { meals, dailyNutrition, cuisineUnlocks } from '@/db';
 import type { Meal, DailyNutrition } from '@/db/schema';
 import { generateThumbnail } from '@/utils/imageUtils';
+import { createModuleLogger } from '@/utils/logger';
+
+const logger = createModuleLogger('MealService');
 
 /**
  * Get the current user ID
@@ -30,16 +33,16 @@ export async function saveMeal(
 ): Promise<string> {
   // Always use the current userId at save time
   const userId = getCurrentUserId(authUserId);
-  console.log('[MealService] saveMeal called:', { authUserId, userId });
+  logger.debug('saveMeal called:', { authUserId, userId });
 
   // Generate thumbnail
   let thumbnailUrl = imageUrl;
   try {
     const imageBlob = await fetch(imageUrl).then(r => r.blob());
     thumbnailUrl = await generateThumbnail(imageBlob, 200, 200, 0.7);
-    console.log('[MealService] Thumbnail generated');
+    logger.debug('Thumbnail generated');
   } catch (thumbError) {
-    console.warn('[MealService] Failed to generate thumbnail:', thumbError);
+    logger.warn('Failed to generate thumbnail:', thumbError);
   }
 
   // Create meal record
@@ -76,7 +79,7 @@ export async function saveMeal(
 
   // Save meal
   await meals.add(newMeal);
-  console.log('[MealService] Meal saved:', { id: newMeal.id, userId, cuisine: analysis.cuisine });
+  logger.debug('Meal saved:', { id: newMeal.id, userId, cuisine: analysis.cuisine });
 
   // Update daily nutrition
   await updateDailyNutrition(userId, newMeal);
@@ -120,7 +123,7 @@ async function updateDailyNutrition(userId: string, meal: Meal): Promise<void> {
     });
   }
 
-  console.log('[MealService] Daily nutrition updated:', { userId, date: today });
+  logger.debug('Daily nutrition updated:', { userId, date: today });
 }
 
 /**
@@ -132,10 +135,10 @@ async function updateCuisineUnlock(userId: string, cuisineName: string): Promise
   // Only increment if this is a new unlock (not just updating meal count)
   // The getOrCreate already sets mealCount to 1 for new unlocks
   if (existing.mealCount === 1) {
-    console.log('[MealService] New cuisine unlocked:', { userId, cuisine: cuisineName });
+    logger.debug('New cuisine unlocked:', { userId, cuisine: cuisineName });
   } else {
     await cuisineUnlocks.incrementMealCount(userId, cuisineName);
-    console.log('[MealService] Cuisine meal count updated:', { userId, cuisine: cuisineName });
+    logger.debug('Cuisine meal count updated:', { userId, cuisine: cuisineName });
   }
 }
 

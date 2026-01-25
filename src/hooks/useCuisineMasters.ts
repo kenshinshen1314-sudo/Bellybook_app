@@ -3,6 +3,7 @@ import { ranking } from '@/api';
 import type { CuisineMasterEntry, CuisineMastersResponse, RankingPeriod } from '@/api/ranking';
 import { useToastNotification } from '@/contexts/ToastContext';
 import { Language } from '@/types';
+import { logger } from '@/utils/logger';
 
 interface UseCuisineMastersResult {
   masters: CuisineMasterEntry[];
@@ -39,16 +40,14 @@ export function useCuisineMasters(
    * Load cuisine masters from backend API
    */
   const loadCuisineMasters = useCallback(async () => {
-    console.log('[useCuisineMasters] Starting to load cuisine masters...');
+    logger.info('[useCuisineMasters]', 'Starting to load cuisine masters...');
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('[useCuisineMasters] Calling ranking.getCuisineMasters with:', { cuisineName, period });
+      logger.debug('[useCuisineMasters]', 'Calling ranking.getCuisineMasters with:', { cuisineName, period });
       const response = await ranking.getCuisineMasters(cuisineName, period);
-      console.log('[useCuisineMasters] Response received:', response);
-      console.log('[useCuisineMasters] Masters count:', response.masters?.length);
-      console.log('[useCuisineMasters] Masters data:', JSON.stringify(response.masters, null, 2));
+      logger.debug('[useCuisineMasters]', `Masters count: ${response.masters?.length}`);
       setData({
         masters: response.masters,
         cuisineName: response.cuisineName,
@@ -57,8 +56,7 @@ export function useCuisineMasters(
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load cuisine masters';
       setError(errorMessage);
-      console.error('[useCuisineMasters] Error loading cuisine masters:', err);
-      console.error('[useCuisineMasters] Error details:', JSON.stringify(err));
+      logger.error('[useCuisineMasters]', 'Error loading cuisine masters:', err);
 
       showError(
         lang === Language.ZH ? '加载失败' : 'Load Failed',

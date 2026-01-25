@@ -12,6 +12,7 @@ import { RankingPeriod, type GourmetEntry } from '@/api/ranking';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { GourmetDetailModal } from './GourmetDetailModal';
+import { UserAvatar } from '@/components/shared/UserAvatar';
 
 interface GourmetRankingModalProps {
   isOpen: boolean;
@@ -68,6 +69,26 @@ export function GourmetRankingModal({
     }
   };
 
+  // Get progress segments based on cuisine count
+  // 1-10: 1 segment, 10-20: 2 segments, 20-30: 3 segments, 30+: 4 segments
+  const getProgressSegments = (cuisineCount: number) => {
+    const segmentCount = cuisineCount <= 0 ? 0 :
+                         cuisineCount <= 10 ? 1 :
+                         cuisineCount <= 20 ? 2 :
+                         cuisineCount <= 30 ? 3 : 4;
+
+    const colors = [
+      'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)',   // amber-500 to amber-600
+      'linear-gradient(90deg, #22c55e 0%, #16a34a 100%)',   // green-500 to green-600
+      'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)',   // blue-500 to blue-600
+      'linear-gradient(90deg, #8b5cf6 0%, #7c3aed 100%)',   // violet-500 to violet-600
+    ];
+
+    return Array.from({ length: segmentCount }, (_, i) => ({
+      background: colors[i],
+    }));
+  };
+
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
@@ -96,7 +117,7 @@ export function GourmetRankingModal({
           {/* Header */}
           <div className={cn(
             "flex items-center justify-between p-6 border-b",
-            isDark ? "border-white/10" : "border-gray-200"
+            isDark ? "border-white/10" : "border-[var(--border)]"
           )}>
             <div className="flex-1">
               <div className="flex items-center gap-2">
@@ -137,7 +158,7 @@ export function GourmetRankingModal({
           {/* Period Selector */}
           <div className={cn(
             "p-4 border-b",
-            isDark ? "border-white/10" : "border-gray-200"
+            isDark ? "border-white/10" : "border-[var(--border)]"
           )}>
             <div className={cn(
               "flex p-1 rounded-xl gap-1",
@@ -152,7 +173,7 @@ export function GourmetRankingModal({
                     "hover:scale-[1.02] active:scale-[0.98]",
                     period === option.value
                       ? cn(
-                          isDark ? "bg-white text-black" : "bg-white text-black",
+                          isDark ? "bg-card text-card-foreground" : "bg-card text-card-foreground",
                           "shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
                         )
                       : cn(
@@ -209,7 +230,7 @@ export function GourmetRankingModal({
                           "hover:scale-[1.01] active:scale-[0.99]",
                           isDark
                             ? "bg-[#2C2C2E] border-white/10 hover:border-white/20 hover:bg-[#3C3C3E]"
-                            : "bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50 shadow-sm"
+                            : "bg-white border-[var(--border)] hover:border-[var(--input-border)] hover:bg-gray-50 shadow-sm"
                         )}
                       >
                         <div className="flex items-center gap-4">
@@ -231,26 +252,12 @@ export function GourmetRankingModal({
                           )}
 
                           {/* User Avatar */}
-                          {gourmet.avatarUrl ? (
-                            <img
-                              src={gourmet.avatarUrl}
-                              alt={gourmet.username}
-                              className={cn(
-                                "w-14 h-14 rounded-full object-cover flex-shrink-0",
-                                "shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
-                              )}
-                            />
-                          ) : (
-                            <div className={cn(
-                              "w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold flex-shrink-0"
-                            )}
-                            style={{
-                              background: 'linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, black) 100%)',
-                              boxShadow: '0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)'
-                            }}>
-                              {gourmet.username?.charAt(0)?.toUpperCase() || '?'}
-                            </div>
-                          )}
+                          <UserAvatar
+                            src={gourmet.avatarUrl}
+                            username={gourmet.username}
+                            size="md"
+                            className="flex-shrink-0"
+                          />
 
                           {/* User Info */}
                           <div className="flex-1 min-w-0">
@@ -261,12 +268,28 @@ export function GourmetRankingModal({
                               {gourmet.username}
                             </h4>
                             <div className={cn(
-                              "text-sm mt-1",
+                              "text-sm mt-1 flex items-center gap-2",
                               isDark ? "text-gray-400" : "text-gray-500"
                             )}>
                               {gourmet.cuisines && gourmet.cuisines.length > 0
                                 ? `${gourmet.cuisines.slice(0, 3).join(', ')}${gourmet.cuisines.length > 3 ? '...' : ''}`
-                                : language === Language.ZH ? '暂无菜系' : 'No cuisines yet'}
+                                : (
+                                  <>
+                                    {/* Show colored line segments based on cuisine count */}
+                                    <div className="flex items-center gap-1">
+                                      {getProgressSegments(gourmet.cuisineCount).map((segment, index) => (
+                                        <div
+                                          key={index}
+                                          className="h-1.5 rounded-full"
+                                          style={{
+                                            width: '30px',
+                                            background: segment.background,
+                                          }}
+                                        />
+                                      ))}
+                                    </div>
+                                  </>
+                                )}
                             </div>
                           </div>
 

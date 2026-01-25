@@ -5,9 +5,19 @@ import App from './App';
 import { ToastProvider } from './contexts/ToastContext';
 import { AuthProvider } from './contexts/AuthContext';
 import './index.css';
+import { logger } from './utils/logger';
 
 // Global Error Handler for "Blank Page" debugging
 window.onerror = function (message, source, lineno, colno, error) {
+  // Ignore null errors (false positives from some libraries)
+  if (!message && !error) return;
+
+  // Ignore harmless ResizeObserver warnings (common with Radix UI components)
+  if (message === 'ResizeObserver loop completed with undelivered notifications.' ||
+      message === 'ResizeObserver loop limit exceeded') {
+    return;
+  }
+
   const errorDiv = document.createElement('div');
   errorDiv.style.position = 'fixed';
   errorDiv.style.top = '0';
@@ -21,10 +31,13 @@ window.onerror = function (message, source, lineno, colno, error) {
   errorDiv.style.whiteSpace = 'pre-wrap';
   errorDiv.innerText = `Runtime Error:\n${message}\nSource: ${source}:${lineno}:${colno}\nStack: ${error?.stack || 'No stack'}`;
   document.body.appendChild(errorDiv);
-  console.error('Global Error:', error);
+  logger.error('Global Error:', message, error);
 };
 
 window.onunhandledrejection = function (event) {
+  // Ignore null rejections (false positives)
+  if (!event.reason) return;
+
   const errorDiv = document.createElement('div');
   errorDiv.style.position = 'fixed';
   errorDiv.style.bottom = '0';
@@ -38,7 +51,7 @@ window.onunhandledrejection = function (event) {
   errorDiv.style.whiteSpace = 'pre-wrap';
   errorDiv.innerText = `Unhandled Rejection:\n${event.reason}\nStack: ${event.reason?.stack || 'No stack'}`;
   document.body.appendChild(errorDiv);
-  console.error('Unhandled Rejection:', event.reason);
+  logger.error('Unhandled Rejection:', event.reason);
 };
 
 // Import the registered service worker
@@ -50,18 +63,18 @@ try {
   // Register Service Worker with update handling
   const updateSW = registerSW({
     onNeedRefresh() {
-      console.log('[SW] New content available, refreshing...');
+      logger.info('New content available, refreshing...');
       // Auto-refresh or show prompt
       if (confirm('新版本可用！点击确定以更新。')) {
         updateSW(true);
       }
     },
     onOfflineReady() {
-      console.log('[SW] App ready to work offline');
+      logger.info('App ready to work offline');
       // Optionally notify user that app is ready for offline use
     },
     onRegistered(registration) {
-      console.log('[SW] Service Worker registered:', registration);
+      logger.info('Service Worker registered:', registration);
 
       // Check for updates periodically (every hour)
       if (registration) {
@@ -71,11 +84,11 @@ try {
       }
     },
     onRegisterError(error) {
-      console.error('[SW] Service Worker registration error:', error);
+      logger.error('Service Worker registration error:', error);
     }
   });
 } catch (e) {
-  console.error('Service Worker registration failed:', e);
+  logger.error('Service Worker registration failed:', e);
 }
 
 const rootElement = document.getElementById('root');
@@ -97,7 +110,7 @@ try {
     </React.StrictMode>
   );
 } catch (e) {
-  console.error('Render failed:', e);
+  logger.error('Render failed:', e);
   if (e instanceof Error) {
     const errorDiv = document.createElement('div');
     errorDiv.innerText = `Render Error: ${e.message}\n${e.stack}`;

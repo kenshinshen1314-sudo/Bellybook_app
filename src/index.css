@@ -23,8 +23,8 @@
   --destructive: oklch(0.7136 0.0981 29.9827);
   --destructive-foreground: oklch(0.9882 0.0069 88.6415);
 
-  --border: oklch(0.6918 0.0440 59.8448);
-  --input: oklch(0.6918 0.0440 59.8448);
+  --border: transparent;
+  --input-border: oklch(0.6918 0.0440 59.8448);
   --ring: oklch(0.7350 0.0564 130.8494);
 
   /* Card Colors */
@@ -34,6 +34,26 @@
   /* Population Colors */
   --popover: oklch(0.9882 0.0069 88.6415);
   --popover-foreground: oklch(0.4265 0.0310 59.2153);
+
+  /* Gold/Premium Colors */
+  --gold: #D4AF37;
+  --gold-light: #E0CEB5;
+  --gold-gradient: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
+
+  /* Nutrition Colors */
+  --nutrition-calories: #f97316;
+  --nutrition-protein: #ef4444;
+  --nutrition-fat: #eab308;
+  --nutrition-carbs: #22c55e;
+
+  /* Status Colors */
+  --success: #22c55e;
+  --warning: #f97316;
+  --info: #3b82f6;
+
+  /* UI Element Colors */
+  --toggle-active: #22c55e;
+  --toggle-inactive: #3A3A3C;
 }
 
 .dark {
@@ -56,17 +76,41 @@
   --destructive: oklch(0.6136 0.1481 29.9827);
   --destructive-foreground: oklch(0.9882 0.0069 88.6415);
 
-  --border: oklch(0.4448 0.0239 84.5498);
-  --input: oklch(0.4448 0.0239 84.5498);
+  --border: transparent;
+  --input-border: oklch(0.4448 0.0239 84.5498);
   --ring: oklch(0.6762 0.0567 132.4479);
 
   /* Card Colors */
   --card: oklch(0.3803 0.0214 88.0737);
   --card-foreground: oklch(0.9217 0.0235 82.1191);
 
+  /* Dialog Colors - 更亮的背景用于对话框 */
+  --dialog-bg: #2C2C2E;
+  --dialog-foreground: #ffffff;
+
   /* Population Colors */
   --popover: oklch(0.3803 0.0214 88.0737);
   --popover-foreground: oklch(0.9217 0.0235 82.1191);
+
+  /* Gold/Premium Colors */
+  --gold: oklch(0.65 0.15 85deg);
+  --gold-light: oklch(0.75 0.12 85deg);
+  --gold-gradient: linear-gradient(135deg, var(--gold-light) 0%, var(--gold) 100%);
+
+  /* Nutrition Colors */
+  --nutrition-calories: #f97316;
+  --nutrition-protein: #ef4444;
+  --nutrition-fat: #eab308;
+  --nutrition-carbs: #22c55e;
+
+  /* Status Colors */
+  --success: #22c55e;
+  --warning: #f97316;
+  --info: #3b82f6;
+
+  /* UI Element Colors */
+  --toggle-active: #22c55e;
+  --toggle-inactive: #3A3A3C;
 }
 
 /* Border Radius System */
@@ -77,6 +121,11 @@
   --radius-xl: calc(var(--radius) + 4px);
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
+}
+
+/* Tailwind border-input class - maps to --input-border CSS variable */
+.border-input {
+  border-color: var(--input-border);
 }
 
 /* Base Styles */

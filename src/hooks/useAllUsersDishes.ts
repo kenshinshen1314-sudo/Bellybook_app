@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ranking, type RankingPeriod, type AllUsersDishesResponse } from '@/api/ranking';
+import { logger } from '@/utils/logger';
 
 interface UseAllUsersDishesResult {
   data: AllUsersDishesResponse | null;
@@ -32,7 +33,7 @@ export function useAllUsersDishes(
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch all users dishes';
       setError(errorMessage);
-      console.error('[useAllUsersDishes] Error:', err);
+      logger.error('[useAllUsersDishes]', 'Error:', err);
     } finally {
       setIsLoading(false);
     }

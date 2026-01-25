@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ranking, type RankingPeriod, type CuisineExpertDetailResponse } from '@/api/ranking';
+import { logger } from '@/utils/logger';
 
 interface UseCuisineExpertDetailResult {
   detail: CuisineExpertDetailResponse | null;
@@ -38,7 +39,7 @@ export function useCuisineExpertDetail(
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch cuisine expert detail';
       setError(errorMessage);
-      console.error('[useCuisineExpertDetail] Error:', err);
+      logger.error('[useCuisineExpertDetail]', 'Error:', err);
     } finally {
       setIsLoading(false);
     }

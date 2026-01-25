@@ -2,6 +2,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { RefreshCw } from 'lucide-react';
 import { Language } from '@/types';
+import { logger } from '@/utils/logger';
 
 interface PullToRefreshProps {
   onRefresh: () => Promise<void>;
@@ -64,7 +65,7 @@ export function PullToRefresh({
       try {
         await onRefresh();
       } catch (err) {
-        console.error('[PullToRefresh] Error during refresh:', err);
+        logger.error('Error during refresh:', err);
       } finally {
         // Reset after a short delay to show completion
         setTimeout(() => {

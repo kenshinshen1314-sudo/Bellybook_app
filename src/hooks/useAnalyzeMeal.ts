@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { analyzeFoodImage } from '@/services/geminiService';
 import { Language, type AnalysisResult } from '@/types';
 import { saveMeal as saveMealService } from '@/services/mealService';
+import { logger } from '@/utils/logger';
 
 export interface AnalyzeMealState {
   imageUrl: string | null;
@@ -58,7 +59,7 @@ export function useAnalyzeMeal(): AnalyzeMealResult {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Analysis failed';
       setError(errorMessage);
-      console.error('[useAnalyzeMeal] Analysis error:', err);
+      logger.error('[useAnalyzeMeal]', 'Analysis error:', err);
       // Clear image URL on error
       setImageUrl(null);
     } finally {
@@ -71,7 +72,7 @@ export function useAnalyzeMeal(): AnalyzeMealResult {
    * @param userId - The user ID to save the meal for (can be null for offline mode)
    */
   const saveAnalysis = useCallback(async (userId: string | null): Promise<void> => {
-    console.log('[useAnalyzeMeal] saveAnalysis called with userId:', userId);
+    logger.debug('[useAnalyzeMeal]', 'saveAnalysis called with userId:', userId);
     if (!analysis || !imageUrl) {
       setError('No analysis to save');
       return;
@@ -84,11 +85,11 @@ export function useAnalyzeMeal(): AnalyzeMealResult {
       // Use the centralized meal service
       await saveMealService(userId, imageUrl, analysis);
       setSaveSuccess(true);
-      console.log('[useAnalyzeMeal] Meal saved successfully');
+      logger.debug('[useAnalyzeMeal]', 'Meal saved successfully');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Save failed';
       setError(errorMessage);
-      console.error('[useAnalyzeMeal] Save error:', err);
+      logger.error('[useAnalyzeMeal]', 'Save error:', err);
     } finally {
       setIsSaving(false);
     }

@@ -6,10 +6,12 @@ import { Button } from './ui/button';
 import { SkeletonMealItem } from './ui/skeleton';
 import { useLongPressDelete } from '@/hooks/useLongPress';
 import { useMinDelay } from '@/hooks/useMinDelay';
+import { useThemeStyles } from '@/hooks/useThemeStyles';
 import { LazyImage } from './LazyImage';
 import { type Meal } from '@/db';
 import { Language, Theme } from '@/types';
 import { translateDishName, translateCuisine } from '@/utils/translationUtils';
+import { logger } from '@/utils/logger';
 
 interface MealListProps {
   meals: Meal[];
@@ -19,6 +21,9 @@ interface MealListProps {
   onMealDelete?: (mealId: string) => void;
   isLoading?: boolean;
   hideDateHeaders?: boolean;
+  // Note: dishToCuisineMap is no longer needed - cuisine is now directly
+  // available at meal.analysis.dishes[0].cuisine from the backend API
+  dishToCuisineMap?: Map<string, string>;
 }
 
 interface MealGroup {
@@ -113,6 +118,7 @@ interface MealItemProps {
   onLongPressEnd?: (mealId: string) => void;
   isLongPressing: boolean;
   itemVariants: any;
+  dishToCuisineMap?: Map<string, string>;
 }
 
 function MealItem({
@@ -126,29 +132,44 @@ function MealItem({
   onLongPressEnd,
   isLongPressing,
   itemVariants,
+  // dishToCuisineMap is no longer used but kept for backward compatibility
 }: MealItemProps) {
+  const styles = useThemeStyles(theme);
   const nutrition = getNutritionSummary(meal);
+
+  // Get food name from dishes array (new data structure) or foodName (old structure)
+  // When multiple dishes are detected, concatenate all dish names
+  const getDishName = (): string => {
+    const dishes = meal.analysis?.dishes;
+    if (dishes && dishes.length > 0) {
+      // Get all dish names and join them with "、" (Chinese enumeration comma)
+      const dishNames = dishes
+        .map(d => d.foodName || d.name || '')
+        .filter(name => name.trim() !== '');
+      return dishNames.join('、');
+    }
+    return meal.analysis?.foodName || '';
+  };
+
   const foodName = translateDishName(
-    meal.analysis?.foodName || (language === Language.ZH ? '未知食物' : 'Unknown Food'),
+    getDishName() || (language === Language.ZH ? '未知食物' : 'Unknown Food'),
     language
   );
-  const cuisine = translateCuisine(meal.analysis?.cuisine || '', language);
+
+  // Get correct cuisine for this meal - simplified approach
+  // The cuisine is already available at meal.analysis.dishes[0].cuisine
+  const cuisine = (() => {
+    const dishes = meal.analysis?.dishes;
+    // Direct access to dishes[0].cuisine which has the correct value
+    if (dishes && dishes.length > 0 && dishes[0].cuisine) {
+      return translateCuisine(dishes[0].cuisine, language);
+    }
+    // Fallback to meal.analysis.cuisine (may be empty)
+    return translateCuisine(meal.analysis?.cuisine || '', language);
+  })();
 
   // Get image URL - prefer thumbnail for list view, fallback to full image
   const displayImageUrl = meal.thumbnailUrl || meal.imageUrl || '';
-
-  // Debug log for first meal render
-  if (index === 0) {
-    console.log('[MealItem] Image data for first meal:', {
-      mealId: meal.id,
-      foodName,
-      hasImageUrl: !!meal.imageUrl,
-      hasThumbnailUrl: !!meal.thumbnailUrl,
-      displayImageUrlPrefix: displayImageUrl?.substring(0, 50),
-      imageUrlType: typeof meal.imageUrl,
-      thumbnailUrlType: typeof meal.thumbnailUrl,
-    });
-  }
 
   // Long press delete hook - called at component top level (Rules of Hooks compliant)
   const { getProps: longPressProps, progress } = useLongPressDelete({
@@ -201,8 +222,7 @@ function MealItem({
         )}
 
         <Card
-          className={`p-3 transition-transform cursor-pointer ${theme === 'dark' ? 'bg-[#1C1C1E]' : 'bg-white'
-            }`}
+          className={`p-3 transition-transform cursor-pointer ${styles.bgCard}`}
           onClick={() => {
             if (!isLongPressing) {
               onMealClick?.(meal);
@@ -220,13 +240,11 @@ function MealItem({
                     alt={foodName}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      console.error('[MealItem] Image failed to load:', {
-                        displayImageUrlPrefix: displayImageUrl.substring(0, 100),
-                        error: (e.target as HTMLImageElement).onerror,
+                      logger.error('Image failed to load:', {
+                        mealId: meal.id,
+                        foodName,
+                        imageUrl: displayImageUrl?.substring(0, 100),
                       });
-                    }}
-                    onLoad={() => {
-                      console.log('[MealItem] Image loaded successfully:', foodName);
                     }}
                   />
                 </>
@@ -241,13 +259,13 @@ function MealItem({
             {/* Content */}
             <div className="flex-1 min-w-0">
               {/* Food Name */}
-              <h4 className={`font-semibold text-sm mb-1 truncate ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              <h4 className={`font-semibold text-sm mb-1 truncate ${styles.textTitle}`}>
                 {foodName}
               </h4>
 
               {/* Cuisine */}
               {cuisine && (
-                <div className={`text-xs mb-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+                <div className={`text-xs mb-2 ${styles.textSecondary}`}>
                   {cuisine}
                 </div>
               )}
@@ -256,11 +274,11 @@ function MealItem({
               <div className="flex items-center space-x-3 text-xs">
                 <div className="flex items-center space-x-1">
                   <Flame size={12} className="text-orange-500" />
-                  <span className={theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}>
-                    {nutrition.calories} kcal
+                  <span className={styles.textSecondary}>
+                    {Math.round(nutrition.calories)} kcal
                   </span>
                 </div>
-                <div className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}>
+                <div className={styles.textTertiary}>
                   {getTimeString(meal.createdAt)}
                 </div>
               </div>
@@ -269,7 +287,7 @@ function MealItem({
             {/* Chevron */}
             <ChevronRight
               size={20}
-              className={theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}
+              className={styles.textTertiary}
             />
           </div>
         </Card>
@@ -281,7 +299,8 @@ function MealItem({
 /**
  * MealList Component - Displays meal history grouped by date
  */
-export function MealList({ meals, language, theme, onMealClick, onMealDelete, isLoading, hideDateHeaders }: MealListProps) {
+export function MealList({ meals, language, theme, onMealClick, onMealDelete, isLoading, hideDateHeaders, dishToCuisineMap }: MealListProps) {
+  const styles = useThemeStyles(theme);
   const groupedMeals = useMemo(() => {
     return groupMealsByDate(meals, language);
   }, [meals, language]);
@@ -302,7 +321,7 @@ export function MealList({ meals, language, theme, onMealClick, onMealDelete, is
             {[1, 2].map((itemIdx) => (
               <Card
                 key={itemIdx}
-                className={`p-3 ${theme === 'dark' ? 'bg-[#1C1C1E]' : 'bg-white'}`}
+                className={`p-3 ${styles.bgCard}`}
               >
                 <SkeletonMealItem />
               </Card>
@@ -365,7 +384,7 @@ export function MealList({ meals, language, theme, onMealClick, onMealDelete, is
         <div key={group.date} className="space-y-3">
           {/* Date Header */}
           {!hideDateHeaders && (
-            <div className={`text-sm font-semibold px-2 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+            <div className={`text-sm font-semibold px-2 ${styles.textSecondary}`}>
               {group.label}
             </div>
           )}
@@ -384,6 +403,7 @@ export function MealList({ meals, language, theme, onMealClick, onMealDelete, is
               onLongPressEnd={() => setLongPressMealId(null)}
               isLongPressing={longPressMealId === meal.id}
               itemVariants={itemVariants}
+              dishToCuisineMap={dishToCuisineMap}
             />
           ))}
         </div>

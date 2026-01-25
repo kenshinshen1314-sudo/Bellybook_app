@@ -5,6 +5,9 @@
 
 import { tokenManager } from './client';
 import type { AuthSession } from './auth';
+import { createModuleLogger } from '@/utils/logger';
+
+const logger = createModuleLogger('OfflineFallback');
 
 // ============================================================================
 // Offline Storage
@@ -233,7 +236,7 @@ export async function processSyncQueue(
       }
       processed.push(action.type);
     } catch (error) {
-      console.error(`[Sync Queue] Failed to process ${action.type}:`, error);
+      logger.error(`Failed to process ${action.type}:`, error);
       action.retryCount++;
     }
   }
@@ -253,14 +256,14 @@ export async function processSyncQueue(
 export function setupOfflineListeners(): void {
   // When going online, try to process sync queue
   window.addEventListener('online', async () => {
-    console.log('[Offline] Connection restored');
+    logger.info('Connection restored');
     // Emit event for app to handle
     window.dispatchEvent(new CustomEvent('auth:online'));
   });
 
   // When going offline
   window.addEventListener('offline', () => {
-    console.log('[Offline] Connection lost');
+    logger.info('Connection lost');
     // Emit event for app to handle
     window.dispatchEvent(new CustomEvent('auth:offline'));
   });

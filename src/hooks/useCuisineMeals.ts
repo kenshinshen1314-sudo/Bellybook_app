@@ -3,6 +3,7 @@ import { meals } from '@/api';
 import type { MealResponse, PaginatedResponse } from '@/api/types';
 import { useToastNotification } from '@/contexts/ToastContext';
 import { Language } from '@/types';
+import { logger } from '@/utils/logger';
 
 interface UseCuisineMealsResult {
   meals: MealResponse[];
@@ -63,7 +64,7 @@ export function useCuisineMeals(
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load cuisine meals';
       setError(errorMessage);
-      console.error('[useCuisineMeals] Error loading meals:', err);
+      logger.error('[useCuisineMeals]', 'Error loading meals:', err);
 
       showError(
         lang === Language.ZH ? '加载失败' : 'Load Failed',

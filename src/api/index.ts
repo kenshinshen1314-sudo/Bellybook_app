@@ -40,6 +40,8 @@ export { meals } from './meals';
 export { ranking } from './ranking';
 export { sync } from './sync';
 export { storage } from './storage';
+export { cuisines } from './cuisines';
+export { nutrition } from './nutrition';
 
 // Re-export error types
 export * from './errors';

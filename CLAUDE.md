@@ -126,3 +126,136 @@ See `src/components/ui/CLAUDE.md` for detailed component API documentation.
 
 - All new components should include `[INPUT]/[OUTPUT]/[POS]` comments in file headers
 - Design system is accessible via Profile > Design System menu item
+
+---
+
+## Architecture (重构后)
+
+### 目录结构
+
+```
+src/
+├── App.tsx                    # 主入口 (~200行，重构中)
+├── AppRefactored.tsx          # 新架构入口 (已完成)
+├── main.tsx                   # Vite 入口
+├── index.css                  # 全局样式 + CSS 变量
+│
+├── router/                    # 路由层 (新增)
+│   ├── AppRouter.tsx          # 主路由器
+│   └── MainTabsRouter.tsx     # Tab 路由器
+│
+├── views/                     # 视图层
+│   ├── tabs/                  # 底部 Tab 视图
+│   │   ├── Tab1Home.tsx
+│   │   ├── Tab2History.tsx
+│   │   ├── TabPassport.tsx
+│   │   └── Tab4Social.tsx
+│   ├── profile/               # Profile 视图 (新增)
+│   │   └── ProfileRouter.tsx  # Profile 子路由器
+│   ├── premium/               # Premium 视图 (新增)
+│   │   └── PremiumRouter.tsx  # Premium 子路由器
+│   ├── subviews/              # 子视图
+│   │   ├── CuisineDetail.tsx
+│   │   └── DishDetail.tsx
+│   ├── AuthViews.tsx
+│   ├── AnalysisResultView.tsx
+│   ├── DesignSystemView.tsx
+│   └── SocialSubViews.tsx
+│
+├── contexts/                  # Context 状态管理
+│   ├── AuthContext.tsx        # 认证状态
+│   ├── AppContext.tsx         # 全局业务状态 (扩展)
+│   └── ViewStateContext.tsx   # 视图临时状态 (新增)
+│
+├── hooks/                     # 自定义 Hooks
+│   ├── useAuth.ts
+│   ├── useProfile.ts
+│   ├── useMeals.ts
+│   ├── useViewState.ts        # 视图状态 Hook (新增)
+│   └── ...
+│
+├── components/                # 组件
+│   ├── ui/                    # shadcn/ui 基础组件 (25个)
+│   ├── shared/                # 共享业务组件
+│   └── ...
+│
+├── api/                       # API 客户端
+├── db/                        # IndexedDB 数据层
+├── lib/                       # 工具函数
+├── sync/                      # 数据同步
+└── types.ts                   # 类型定义
+```
+
+### 架构原则
+
+1. **Provider 分层**：
+   ```
+   AuthProvider (认证)
+     ↓
+   AppProvider (全局业务状态)
+     ↓
+   ViewStateProvider (视图临时状态)
+     ↓
+   AppRouter (路由)
+   ```
+
+2. **路由分层**：
+   ```
+   AppRouter
+     ├─ ProfileRouter (PROFILE_*)
+     ├─ PremiumRouter (PREMIUM_*)
+     ├─ MainTabsRouter (MAIN_TABS + Tab 切换)
+     └─ 其他视图 (直接渲染)
+   ```
+
+3. **状态管理分离**：
+   - **AppContext**: 全局业务状态（user、profile、meals、settings）
+   - **ViewStateContext**: 视图临时状态（selectedCuisine、modal、tab）
+   - **AuthContext**: 认证状态（isAuthenticated、user）
+
+4. **消除 Props Drilling**：
+   ```typescript
+   // ❌ 旧方式
+   <Tab1Home lang={lang} theme={theme} userId={userId} refreshTrigger={trigger} />
+
+   // ✅ 新方式
+   function Tab1Home() {
+     const { language, theme, userId, refreshTrigger } = useApp();
+     // 无需 props
+   }
+   ```
+
+### 重构成果
+
+| 指标 | 重构前 | 重构后 | 改善 |
+|------|--------|--------|------|
+| App.tsx 行数 | 1268 | ~200 | 84% ↓ |
+| Props drilling | 严重 | 消除 | ✅ |
+| 视图路由 | 分散 | 集中 | ✅ |
+| 状态管理 | 分散 | Context | ✅ |
+| 代码可读性 | 低 | 高 | ✅ |
+
+### 迁移步骤
+
+1. ✅ 扩展 AppContext 添加导航状态
+2. ✅ 创建 ViewStateContext 管理临时 UI 状态
+3. ✅ 创建路由系统
+4. ✅ 提取 Profile 视图为子路由器
+5. ✅ 提取 Premium 视图为子路由器
+6. ✅ 创建 MainTabsRouter
+7. ✅ 编写 AppRefactored.tsx
+8. ⏳ 逐步迁移子组件使用 useApp()
+9. ⏳ 替换 App.tsx
+10. ⏳ 删除旧代码
+
+### 设计哲学
+
+> **简化是最高形式的复杂。**
+>
+> **能消失的分支永远比能写对的分支更优雅。**
+
+重构遵循以下原则：
+- 单一职责：每个文件只做一件事
+- 依赖注入：通过 Context 注入状态，而非 props 传递
+- 视图分离：大型视图独立为子路由器
+- 代码即文档：使用 `[INPUT]/[OUTPUT]/[POS]` 注释

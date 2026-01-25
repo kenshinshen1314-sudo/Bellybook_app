@@ -1,5 +1,6 @@
 import React from 'react';
 import { Card } from '../../components/UIComponents';
+import { useThemeStyles } from '../../hooks/useThemeStyles';
 import { Language, TEXT, Theme } from '../../types';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, ScatterChart, Scatter, ZAxis } from 'recharts';
 import { Apple, Beef, Wheat, Carrot } from 'lucide-react';
@@ -34,7 +35,7 @@ const regularityData = [
 
 const Tab3Discovery: React.FC<Tab3DiscoveryProps> = ({ lang, theme }) => {
   const t = TEXT[lang];
-  const textColor = theme === 'dark' ? 'text-white' : 'text-black';
+  const styles = useThemeStyles(theme);
   const axisColor = theme === 'dark' ? '#555' : '#ddd';
   const tooltipBg = theme === 'dark' ? '#333' : '#fff';
   const tooltipColor = theme === 'dark' ? '#fff' : '#000';
@@ -42,7 +43,7 @@ const Tab3Discovery: React.FC<Tab3DiscoveryProps> = ({ lang, theme }) => {
   const cuisineKeys = ['cuisine_japanese', 'cuisine_cantonese', 'cuisine_italian', 'cuisine_korean', 'cuisine_new_world', 'cuisine_french'];
 
   return (
-    <div className={`pb-28 pt-24 px-4 animate-fade-in ${textColor} space-y-6`}>
+    <div className={`pb-28 pt-24 px-4 animate-fade-in ${styles.textTitle} space-y-6`}>
       
       {/* 1. Cuisine Explorer */}
       <div className="space-y-3">
@@ -52,7 +53,7 @@ const Tab3Discovery: React.FC<Tab3DiscoveryProps> = ({ lang, theme }) => {
         </div>
         <div className="grid grid-cols-2 gap-3">
            {cuisineKeys.slice(0, 4).map((cKey, i) => (
-             <Card theme={theme} key={i} className={`h-28 flex items-end p-3 relative group ${theme === 'dark' ? 'bg-[#2C2C2E]' : 'bg-gray-100'}`}>
+             <Card theme={theme} key={i} className={`h-28 flex items-end p-3 relative group ${styles.bgCard}`}>
                 <div className={`absolute inset-0 z-0 ${theme === 'dark' ? 'bg-gradient-to-t from-black/90 to-transparent' : 'bg-gradient-to-t from-black/50 to-transparent'}`}></div>
                 <img src={`https://picsum.photos/200/200?food=${i+20}`} className="absolute inset-0 w-full h-full object-cover opacity-70 z-[-1]" alt={cKey} />
                 <span className="relative z-10 font-medium text-sm text-white">{(t as any)[cKey]}</span>
@@ -135,7 +136,7 @@ const Tab3Discovery: React.FC<Tab3DiscoveryProps> = ({ lang, theme }) => {
         <Card theme={theme} className="p-4">
             <div className="flex items-center justify-between mb-4">
                  <div>
-                    <div className={`text-2xl font-bold ${textColor}`}>22 <span className="text-sm font-normal text-gray-500">{t.food_items_count}</span></div>
+                    <div className={`text-2xl font-bold ${styles.textTitle}`}>22 <span className="text-sm font-normal text-gray-500">{t.food_items_count}</span></div>
                  </div>
                  <div className="flex items-center text-green-500 text-sm">
                     <span className="mr-1">⇧</span> +8 {t.this_week_increase}

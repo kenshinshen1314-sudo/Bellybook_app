@@ -16,6 +16,9 @@ import {
   type DailyNutrition,
   type CuisineUnlock,
 } from './schema';
+import { createModuleLogger } from '@/utils/logger';
+
+const logger = createModuleLogger('DB');
 
 // Re-export types for convenience
 export type { UserProfile, UserSettings, Meal, SyncQueueItem, DailyNutrition, CuisineUnlock };
@@ -92,25 +95,25 @@ async function openDBConnection(): Promise<IDBPDatabase<BellybookDB>> {
     return dbInstance;
   }
 
-  console.log('[DB] Opening database:', DB_CONFIG.name, 'v' + DB_CONFIG.version);
+  logger.info('Opening database:', DB_CONFIG.name, 'v' + DB_CONFIG.version);
 
   dbInstance = await openDB<BellybookDB>(DB_CONFIG.name, DB_CONFIG.version, {
     upgrade(db, oldVersion, newVersion, transaction) {
-      console.log(`[DB] Upgrade: v${oldVersion} → v${newVersion}`);
+      logger.info(`Upgrade: v${oldVersion} → v${newVersion}`);
       createObjectStores(db);
       if (newVersion && oldVersion < newVersion) {
         handleMigration(db, oldVersion, newVersion);
       }
     },
     blocking() {
-      console.log('[DB] Database is blocked - another tab is using it');
+      logger.warn('Database is blocked - another tab is using it');
     },
     blocked() {
-      console.log('[DB] Database is blocked - waiting for other tab to close');
+      logger.warn('Database is blocked - waiting for other tab to close');
     },
   });
 
-  console.log('[DB] Database opened successfully');
+  logger.info('Database opened successfully');
   return dbInstance;
 }
 
@@ -121,7 +124,7 @@ export async function closeDB(): Promise<void> {
   if (dbInstance) {
     await dbInstance.close();
     dbInstance = null;
-    console.log('[DB] Database closed');
+    logger.debug('Database closed');
   }
 }
 
@@ -156,7 +159,7 @@ export const users = {
     // Add id at root level to match keyPath: 'id'
     const record = { id: userId, ...data };
     await db.put(DB_STORES.USERS, record);
-    console.log('[DB] User data saved:', userId);
+    logger.debug('User data saved:', userId);
   },
 
   /**
@@ -165,7 +168,7 @@ export const users = {
   async delete(userId: string): Promise<void> {
     const db = await getDB();
     await db.delete(DB_STORES.USERS, userId);
-    console.log('[DB] User data deleted:', userId);
+    logger.debug('User data deleted:', userId);
   },
 
   /**
@@ -222,7 +225,7 @@ export const meals = {
   async add(meal: Meal): Promise<string> {
     const db = await getDB();
     const key = await db.add(DB_STORES.MEALS, meal);
-    console.log('[DB] Meal added:', key);
+    logger.debug('Meal added:', key);
     return key;
   },
 
@@ -232,7 +235,7 @@ export const meals = {
   async update(meal: Meal): Promise<void> {
     const db = await getDB();
     await db.put(DB_STORES.MEALS, meal);
-    console.log('[DB] Meal updated:', meal.id);
+    logger.debug('Meal updated:', meal.id);
   },
 
   /**
@@ -241,7 +244,7 @@ export const meals = {
   async delete(mealId: string): Promise<void> {
     const db = await getDB();
     await db.delete(DB_STORES.MEALS, mealId);
-    console.log('[DB] Meal deleted:', mealId);
+    logger.debug('Meal deleted:', mealId);
   },
 
   /**
@@ -276,7 +279,7 @@ export const meals = {
       meal.isSynced = true;
       meal.syncedAt = new Date().toISOString();
       await db.put(DB_STORES.MEALS, meal);
-      console.log('[DB] Meal marked as synced:', mealId);
+      logger.debug('Meal marked as synced:', mealId);
     }
   },
 };
@@ -292,7 +295,7 @@ export const syncQueue = {
   async add(item: SyncQueueItem): Promise<string> {
     const db = await getDB();
     const key = await db.add(DB_STORES.SYNC_QUEUE, item);
-    console.log('[DB] Sync queue item added:', key);
+    logger.debug('Sync queue item added:', key);
     return key;
   },
 
@@ -318,7 +321,7 @@ export const syncQueue = {
   async delete(itemId: string): Promise<void> {
     const db = await getDB();
     await db.delete(DB_STORES.SYNC_QUEUE, itemId);
-    console.log('[DB] Sync queue item deleted:', itemId);
+    logger.debug('Sync queue item deleted:', itemId);
   },
 
   /**
@@ -336,7 +339,7 @@ export const syncQueue = {
     }
 
     await tx.done;
-    console.log('[DB] Sync queue cleared for user:', userId);
+    logger.debug('Sync queue cleared for user:', userId);
   },
 
   /**
@@ -364,7 +367,7 @@ export const syncQueue = {
           failed++;
         }
       } catch (error) {
-        console.error('[DB] Sync queue item failed:', item.id, error);
+        logger.error('Sync queue item failed:', item.id, error);
         item.retryCount++;
         item.lastError = error instanceof Error ? error.message : 'Unknown error';
         const db = await getDB();
@@ -373,7 +376,7 @@ export const syncQueue = {
       }
     }
 
-    console.log('[DB] Sync queue processed:', { success, failed });
+    logger.debug('Sync queue processed:', { success, failed });
     return { success, failed };
   },
 };
@@ -403,7 +406,7 @@ export const dailyNutrition = {
     const key = existing?.id || 0;
 
     const newKey = await db.put(DB_STORES.DAILY_NUTRITION, { ...data, id: key || undefined });
-    console.log('[DB] Daily nutrition saved:', newKey);
+    logger.debug('Daily nutrition saved:', newKey);
     return newKey;
   },
 
@@ -464,7 +467,7 @@ export const cuisineUnlocks = {
     };
 
     const key = await db.add(DB_STORES.CUISINE_UNLOCKS, newUnlock);
-    console.log('[DB] Cuisine unlock created:', key);
+    logger.debug('Cuisine unlock created:', key);
     return { ...newUnlock, id: key };
   },
 
@@ -477,7 +480,7 @@ export const cuisineUnlocks = {
 
     const db = await getDB();
     await db.put(DB_STORES.CUISINE_UNLOCKS, unlock);
-    console.log('[DB] Cuisine meal count incremented:', cuisineName);
+    logger.debug('Cuisine meal count incremented:', cuisineName);
   },
 };
 
@@ -499,7 +502,7 @@ export async function clearAll(): Promise<void> {
   ]);
 
   await tx.done;
-  console.log('[DB] All data cleared');
+  logger.debug('All data cleared');
 }
 
 /**

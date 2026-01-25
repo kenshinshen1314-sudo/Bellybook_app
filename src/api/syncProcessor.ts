@@ -10,6 +10,9 @@ import type { SyncProcessor } from '@/sync/types';
 import { meals } from './meals';
 import { profile } from './profile';
 import type { SyncPushItem } from './types';
+import { createModuleLogger } from '@/utils/logger';
+
+const logger = createModuleLogger('SyncProcessor');
 
 /**
  * Convert sync queue item to API push item format
@@ -28,7 +31,7 @@ function toPushItem(item: SyncQueueItem): SyncPushItem {
  */
 export const syncProcessor: SyncProcessor = async (item: SyncQueueItem): Promise<boolean> => {
   try {
-    console.log('[SyncProcessor] Processing item:', item.type, item.id);
+    logger.debug('Processing item:', item.type, item.id);
 
     switch (item.type) {
       case 'CREATE_MEAL': {
@@ -71,11 +74,11 @@ export const syncProcessor: SyncProcessor = async (item: SyncQueueItem): Promise
       }
 
       default:
-        console.warn('[SyncProcessor] Unknown sync type:', item.type);
+        logger.warn('Unknown sync type:', item.type);
         return false;
     }
   } catch (error) {
-    console.error('[SyncProcessor] Error processing item:', item.id, error);
+    logger.error('Error processing item:', item.id, error);
 
     // Check if error is permanent (shouldn't retry) or temporary (should retry)
     if (error instanceof Error) {
@@ -88,7 +91,7 @@ export const syncProcessor: SyncProcessor = async (item: SyncQueueItem): Promise
         errorMessage.includes('unauthorized') ||
         errorMessage.includes('forbidden')
       ) {
-        console.log('[SyncProcessor] Permanent error, not retrying');
+        logger.debug('Permanent error, not retrying');
         return true; // Return true to remove from queue even though it failed
       }
     }
@@ -122,7 +125,7 @@ export async function batchSyncProcessor(items: SyncQueueItem[]): Promise<{
       failed: response.data.failed,
     };
   } catch (error) {
-    console.error('[SyncProcessor] Batch sync error:', error);
+    logger.error('Batch sync error:', error);
     // Fall back to individual processing
     return {
       success: [],
@@ -179,7 +182,7 @@ export async function pullRemoteChanges(lastSyncAt?: string): Promise<void> {
         );
 
         if (detection.hasConflict && detection.conflict) {
-          console.log('[SyncProcessor] Conflict detected for meal:', remoteMeal.id);
+          logger.debug('Conflict detected for meal:', remoteMeal.id);
 
           // Auto-resolve using Last Write Wins strategy
           const resolution = resolver.resolveLastWriteWins(detection.conflict.id);
@@ -192,7 +195,7 @@ export async function pullRemoteChanges(lastSyncAt?: string): Promise<void> {
             syncedAt: new Date().toISOString(),
           } as any);
 
-          console.log('[SyncProcessor] Conflict resolved:', resolution.keepVersion);
+          logger.debug('Conflict resolved:', resolution.keepVersion);
         } else {
           // No conflict or auto-resolved, update with server data
           await mealsDb.update({
@@ -210,13 +213,13 @@ export async function pullRemoteChanges(lastSyncAt?: string): Promise<void> {
       // This would be implemented with the actual profile data
     }
 
-    console.log('[SyncProcessor] Pull complete:', {
+    logger.debug('Pull complete:', {
       mealsProcessed: remoteMeals.length,
       conflicts: resolver.getStats(),
       serverTime,
     });
   } catch (error) {
-    console.error('[SyncProcessor] Pull error:', error);
+    logger.error('Pull error:', error);
     throw error;
   }
 }

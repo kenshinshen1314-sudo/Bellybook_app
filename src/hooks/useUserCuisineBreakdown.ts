@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ranking, type RankingPeriod, type AllUsersDishesResponse } from '@/api/ranking';
 import { useToastNotification } from '@/contexts/ToastContext';
 import { Language } from '@/types';
+import { logger } from '@/utils/logger';
 
 /**
  * Single cuisine entry for a user
@@ -86,19 +87,20 @@ export function useUserCuisineBreakdown(
    * Load and aggregate user cuisine breakdown from backend API
    */
   const loadData = useCallback(async () => {
-    console.log('[useUserCuisineBreakdown] Starting to load user cuisine breakdown...');
+    logger.info('[useUserCuisineBreakdown]', 'Starting to load user cuisine breakdown...');
     setIsLoading(true);
     setError(null);
 
     try {
-      // Fetch all user+cuisine entries
-      const response: AllUsersDishesResponse = await ranking.getAllUsersDishes(period);
-      console.log('[useUserCuisineBreakdown] Response received:', response);
+      // Fetch all user+cuisine entries (request up to 1000 users)
+      const response: AllUsersDishesResponse = await ranking.getAllUsersDishes(period, 1000);
+      logger.debug('[useUserCuisineBreakdown]', 'Response received:', response);
 
       // Aggregate by user
       const userMap = new Map<string, UserWithCuisines>();
 
-      for (const entry of response.entries) {
+      const entries = response.entries || [];
+      for (const entry of entries) {
         let user = userMap.get(entry.userId);
 
         if (!user) {
@@ -134,7 +136,8 @@ export function useUserCuisineBreakdown(
           cuisines: user.cuisines.sort((a, b) => b.dishCount - a.dishCount),
         }));
 
-      console.log('[useUserCuisineBreakdown] Aggregated users:', users);
+      logger.debug('[useUserCuisineBreakdown]', 'Aggregated users:', users);
+      logger.debug('[useUserCuisineBreakdown]', `Total users count: ${users.length}`);
 
       setData({
         users,
@@ -143,8 +146,7 @@ export function useUserCuisineBreakdown(
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load user cuisine breakdown';
       setError(errorMessage);
-      console.error('[useUserCuisineBreakdown] Error loading data:', err);
-      console.error('[useUserCuisineBreakdown] Error details:', JSON.stringify(err));
+      logger.error('[useUserCuisineBreakdown]', 'Error loading data:', err);
 
       showError(
         lang === Language.ZH ? '加载失败' : 'Load Failed',

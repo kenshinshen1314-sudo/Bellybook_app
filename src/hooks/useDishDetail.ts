@@ -3,6 +3,7 @@ import { meals } from '@/api';
 import type { MealResponse } from '@/api/types';
 import { useToastNotification } from '@/contexts/ToastContext';
 import { Language } from '@/types';
+import { logger } from '@/utils/logger';
 
 interface DishDetail {
   name: string;
@@ -58,7 +59,7 @@ export function useDishDetail(
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load dish details';
       setError(errorMessage);
-      console.error('[useDishDetail] Error loading dish details:', err);
+      logger.error('[useDishDetail]', 'Error loading dish details:', err);
 
       showError(
         lang === Language.ZH ? '加载失败' : 'Load Failed',

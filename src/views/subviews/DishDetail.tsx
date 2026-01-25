@@ -77,11 +77,19 @@ export const DishDetail: React.FC<DishDetailProps> = ({
   const latestMeal = meals[0];
   const imageUrl = latestMeal.thumbnailUrl || latestMeal.imageUrl;
 
+  // ============================================================
+  // 营养数据格式化 - 确保显示整数
+  // ============================================================
+  const formatNumber = (num: number | undefined): string => {
+    if (num === undefined || num === null || isNaN(num)) return '0';
+    return String(Math.round(num));
+  };
+
   // Nutrition info from dish (averages) or latest meal
-  const calories = dish.averageCalories ?? Math.round(latestMeal.analysis?.nutrition?.calories || 0);
-  const protein = dish.averageProtein ?? Math.round(latestMeal.analysis?.nutrition?.protein || 0);
-  const fat = dish.averageFat ?? Math.round(latestMeal.analysis?.nutrition?.fat || 0);
-  const carbs = dish.averageCarbs ?? Math.round(latestMeal.analysis?.nutrition?.carbohydrates || 0);
+  const calories = formatNumber(dish.averageCalories ?? latestMeal.analysis?.nutrition?.calories);
+  const protein = formatNumber(dish.averageProtein ?? latestMeal.analysis?.nutrition?.protein);
+  const fat = formatNumber(dish.averageFat ?? latestMeal.analysis?.nutrition?.fat);
+  const carbs = formatNumber(dish.averageCarbs ?? latestMeal.analysis?.nutrition?.carbohydrates);
 
   return (
     <div className={`min-h-screen ${isDark ? 'bg-background' : 'bg-gray-50'} animate-slide-left relative`}>
@@ -144,7 +152,7 @@ export const DishDetail: React.FC<DishDetailProps> = ({
           <h3 className={`font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
             {t.history_source}
           </h3>
-          <Card className={`p-4 border-none shadow-sm ${isDark ? 'bg-[#1C1C1E] text-gray-300' : 'bg-white text-gray-600'}`}>
+          <Card className={`p-4 border-none shadow-sm ${isDark ? 'bg-card text-card-foreground' : 'bg-card text-muted-foreground'}`}>
             <p className="text-sm leading-relaxed">
               {dish.historicalOrigins || dish.description ||
                 (lang === Language.ZH ? '暂无历史渊源记录' : 'No historical information available')}
@@ -158,7 +166,7 @@ export const DishDetail: React.FC<DishDetailProps> = ({
             <h3 className={`font-bold mb-3 ${isDark ? 'text-white' : 'text-gray-900'}`}>
               {lang === Language.ZH ? '菜品介绍' : 'Description'}
             </h3>
-            <Card className={`p-4 border-none shadow-sm ${isDark ? 'bg-[#1C1C1E] text-gray-300' : 'bg-white text-gray-600'}`}>
+            <Card className={`p-4 border-none shadow-sm ${isDark ? 'bg-card text-card-foreground' : 'bg-card text-muted-foreground'}`}>
               <p className="text-sm leading-relaxed">{dish.description}</p>
             </Card>
           </div>
@@ -181,7 +189,7 @@ export const DishDetail: React.FC<DishDetailProps> = ({
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setSelectedMeal(meal)}
                 >
-                  <Card className={`p-3 flex items-center space-x-3 border-none shadow-sm ${isDark ? 'bg-[#1C1C1E]' : 'bg-white'}`}>
+                  <Card className={`p-3 flex items-center space-x-3 border-none shadow-sm ${isDark ? 'bg-card' : 'bg-card'}`}>
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
                       <img src={meal.thumbnailUrl || meal.imageUrl} className="w-full h-full object-cover" alt="meal" />
                     </div>
@@ -222,7 +230,7 @@ export const DishDetail: React.FC<DishDetailProps> = ({
         className={`fixed bottom-6 left-6 z-30 w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-110 active:scale-95 ${
           isDark
             ? 'bg-white/20 backdrop-blur-md text-white'
-            : 'bg-white shadow-md text-black'
+            : 'bg-card shadow-md text-card-foreground'
         }`}
       >
         <ArrowLeft size={24} />

@@ -10,6 +10,9 @@ import { Language, Theme } from '@/types';
 import { ranking, type RankingPeriod, type AllUsersDishesResponse, type UserCuisineStats } from '@/api/ranking';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { UserAvatar } from '@/components/shared/UserAvatar';
+import { ModalCloseButton } from '@/components/shared/ModalCloseButton';
+import { logger } from '@/utils/logger';
 
 interface GourmetDetailModalProps {
   isOpen: boolean;
@@ -29,6 +32,28 @@ interface CuisineDistribution {
   cuisineName: string;
   dishCount: number;
   percentage: number;
+}
+
+/**
+ * Get progress segments based on cuisine count
+ * 1-10: 1 segment, 10-20: 2 segments, 20-30: 3 segments, 30+: 4 segments
+ */
+function getProgressSegments(cuisineCount: number, isDark: boolean) {
+  const segmentCount = cuisineCount <= 0 ? 0 :
+                       cuisineCount <= 10 ? 1 :
+                       cuisineCount <= 20 ? 2 :
+                       cuisineCount <= 30 ? 3 : 4;
+
+  const colors = [
+    'linear-gradient(90deg, #f59e0b 0%, #d97706 100%)',   // amber-500 to amber-600
+    'linear-gradient(90deg, #22c55e 0%, #16a34a 100%)',   // green-500 to green-600
+    'linear-gradient(90deg, #3b82f6 0%, #2563eb 100%)',   // blue-500 to blue-600
+    'linear-gradient(90deg, #8b5cf6 0%, #7c3aed 100%)',   // violet-500 to violet-600
+  ];
+
+  return Array.from({ length: segmentCount }, (_, i) => ({
+    background: colors[i],
+  }));
 }
 
 export function GourmetDetailModal({
@@ -75,7 +100,7 @@ export function GourmetDetailModal({
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load cuisine data';
       setError(errorMessage);
-      console.error('[GourmetDetailModal] Error:', err);
+      logger.error('Failed to load cuisine data:', err);
     } finally {
       setIsLoading(false);
     }
@@ -113,7 +138,7 @@ export function GourmetDetailModal({
           {/* Header */}
           <div className={cn(
             "flex items-center justify-between p-6 border-b",
-            isDark ? "border-white/10" : "border-gray-200"
+            isDark ? "border-white/10" : "border-[var(--border)]"
           )}>
             <div className="flex items-center gap-3">
               <span className="text-2xl">👑</span>
@@ -132,16 +157,7 @@ export function GourmetDetailModal({
                 </p>
               </div>
             </div>
-            <button
-              onClick={onClose}
-              className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center transition-all",
-                "hover:scale-[1.02] active:scale-[0.98]",
-                isDark ? "bg-[#2C2C2E] hover:bg-[#3C3C3E]" : "bg-gray-100 hover:bg-gray-200"
-              )}
-            >
-              <X size={20} className={isDark ? "text-white" : "text-gray-600"} />
-            </button>
+            <ModalCloseButton onClose={onClose} theme={theme} />
           </div>
 
           {/* Content */}
@@ -149,7 +165,7 @@ export function GourmetDetailModal({
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <div className={cn(
-                  "animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500"
+                  "animate-spin rounded-full h-8 w-8 border-b-2 border-primary"
                 )}></div>
               </div>
             ) : error ? (
@@ -162,30 +178,15 @@ export function GourmetDetailModal({
                 {/* User Info Card */}
                 <div className={cn(
                   "rounded-2xl p-5 border",
-                  isDark ? "bg-[#2C2C2E] border-white/10" : "bg-gray-50 border-gray-200"
+                  isDark ? "bg-card border-border" : "bg-gray-50 border-[var(--border)]"
                 )}>
                   <div className="flex items-center gap-4">
                     {/* User Avatar */}
-                    {gourmet.avatarUrl ? (
-                      <img
-                        src={gourmet.avatarUrl}
-                        alt={gourmet.username}
-                        className={cn(
-                          "w-20 h-20 rounded-full object-cover flex-shrink-0",
-                          "shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
-                        )}
-                      />
-                    ) : (
-                      <div className={cn(
-                        "w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold flex-shrink-0"
-                      )}
-                      style={{
-                        background: 'linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, black) 100%)',
-                        boxShadow: '0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)'
-                      }}>
-                        {gourmet.username?.charAt(0)?.toUpperCase() || '?'}
-                      </div>
-                    )}
+                    <UserAvatar
+                      src={gourmet.avatarUrl}
+                      username={gourmet.username}
+                      size="lg"
+                    />
 
                     {/* User Details */}
                     <div className="flex-1">
@@ -214,7 +215,7 @@ export function GourmetDetailModal({
                 {/* Cuisine Distribution Card */}
                 <div className={cn(
                   "rounded-2xl p-5 border",
-                  isDark ? "bg-[#2C2C2E] border-white/10" : "bg-gray-50 border-gray-200"
+                  isDark ? "bg-[#2C2C2E] border-white/10" : "bg-gray-50 border-[var(--border)]"
                 )}>
                   <h3 className={cn(
                     "text-lg font-bold mb-4 flex items-center gap-2",
@@ -226,9 +227,26 @@ export function GourmetDetailModal({
 
                   {cuisineDistribution.length === 0 ? (
                     <div className="text-center py-8">
-                      <Utensils className="w-12 h-12 mx-auto mb-3 opacity-50 text-gray-400" />
-                      <p className={cn("text-sm", isDark ? "text-gray-400" : "text-gray-500")}>
-                        {language === Language.ZH ? '暂无菜系数据' : 'No cuisine data yet'}
+                      {/* Show colored line segments based on cuisine count */}
+                      <div className="flex items-center justify-center gap-2 mb-4">
+                        {getProgressSegments(gourmet.cuisineCount, isDark).map((segment, index) => (
+                          <div
+                            key={index}
+                            className="h-2 rounded-full animate-pulse"
+                            style={{
+                              width: '60px',
+                              background: segment.background,
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <p className={cn("text-sm mb-2", isDark ? "text-gray-400" : "text-gray-500")}>
+                        {gourmet.cuisineCount} {language === Language.ZH ? '个菜系已解锁' : 'cuisines unlocked'}
+                      </p>
+                      <p className={cn("text-xs", isDark ? "text-gray-500" : "text-gray-400")}>
+                        {language === Language.ZH
+                          ? '正在同步详细数据...'
+                          : 'Syncing detailed data...'}
                       </p>
                     </div>
                   ) : (

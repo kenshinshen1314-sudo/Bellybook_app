@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { ranking, type RankingPeriod, type GourmetsResponse, type GourmetEntry } from '@/api/ranking';
 import { useToastNotification } from '@/contexts/ToastContext';
 import { Language } from '@/types';
+import { logger } from '@/utils/logger';
 
 interface UseGourmetsResult {
   gourmets: GourmetEntry[];
@@ -40,15 +41,14 @@ export function useGourmets(
    * Load gourmets from backend API
    */
   const loadGourmets = useCallback(async () => {
-    console.log('[useGourmets] Starting to load gourmets...');
+    logger.info('[useGourmets]', 'Starting to load gourmets...');
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('[useGourmets] Calling ranking.getGourmets with:', { period });
+      logger.debug('[useGourmets]', 'Calling ranking.getGourmets with:', { period });
       const response: GourmetsResponse = await ranking.getGourmets(period);
-      console.log('[useGourmets] Response received:', response);
-      console.log('[useGourmets] Gourmets count:', response.gourmets?.length);
+      logger.debug('[useGourmets]', `Gourmets count: ${response.gourmets?.length}`);
 
       // Calculate total users (estimate from gourmets list length for now)
       // Backend could provide this in a separate stats endpoint
@@ -62,8 +62,7 @@ export function useGourmets(
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load gourmets';
       setError(errorMessage);
-      console.error('[useGourmets] Error loading gourmets:', err);
-      console.error('[useGourmets] Error details:', JSON.stringify(err));
+      logger.error('[useGourmets]', 'Error loading gourmets:', err);
 
       showError(
         lang === Language.ZH ? '加载失败' : 'Load Failed',

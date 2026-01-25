@@ -14,6 +14,9 @@ import type {
   SyncStats,
   SyncStatus,
 } from './types';
+import { createModuleLogger } from '@/utils/logger';
+
+const logger = createModuleLogger('SyncQueue');
 
 const DEFAULT_CONFIG = {
   maxRetries: 5,
@@ -90,7 +93,7 @@ export class SyncQueueManager {
     };
 
     await syncQueue.add(item);
-    console.log('[SyncQueue] Item added:', item.id, item.type);
+    logger.debug('Item added:', item.id, item.type);
     this.notify();
 
     return item.id;
@@ -101,7 +104,7 @@ export class SyncQueueManager {
    */
   async remove(itemId: string): Promise<void> {
     await syncQueue.delete(itemId);
-    console.log('[SyncQueue] Item removed:', itemId);
+    logger.debug('Item removed:', itemId);
     this.notify();
   }
 
@@ -136,7 +139,7 @@ export class SyncQueueManager {
 
     // Check if max retries exceeded
     if (item.retryCount >= this.config.maxRetries) {
-      console.error('[SyncQueue] Max retries exceeded for item:', item.id);
+      logger.error('Max retries exceeded for item:', item.id);
       return {
         success: false,
         itemId: item.id,
@@ -162,7 +165,7 @@ export class SyncQueueManager {
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('[SyncQueue] Item failed:', item.id, errorMessage);
+      logger.error('Item failed:', item.id, errorMessage);
 
       // Update retry count and error
       item.retryCount++;
@@ -178,7 +181,7 @@ export class SyncQueueManager {
    */
   async process(processor: SyncProcessor): Promise<SyncResult[]> {
     if (this.isProcessing) {
-      console.log('[SyncQueue] Already processing, skipping');
+      logger.debug('Already processing, skipping');
       return [];
     }
 
@@ -203,7 +206,7 @@ export class SyncQueueManager {
 
       for (const item of items) {
         if (signal.aborted) {
-          console.log('[SyncQueue] Processing aborted');
+          logger.debug('Processing aborted');
           break;
         }
 
@@ -221,8 +224,8 @@ export class SyncQueueManager {
 
           if (timeSinceRetry < delay) {
             const waitTime = delay - timeSinceRetry;
-            console.log(
-              `[SyncQueue] Waiting ${waitTime}ms before retry for item:`,
+            logger.debug(
+              `Waiting ${waitTime}ms before retry for item:`,
               item.id
             );
             await new Promise((resolve) => setTimeout(resolve, waitTime));
@@ -240,13 +243,13 @@ export class SyncQueueManager {
 
       this.lastSyncTime = new Date().toISOString();
       this.status = results.every((r) => r.success) ? 'success' : 'error';
-      console.log('[SyncQueue] Processing complete:', {
+      logger.debug('Processing complete:', {
         total: results.length,
         success: results.filter((r) => r.success).length,
         failed: results.filter((r) => !r.success).length,
       });
     } catch (error) {
-      console.error('[SyncQueue] Processing error:', error);
+      logger.error('Processing error:', error);
       this.status = 'error';
     } finally {
       this.isProcessing = false;
@@ -263,7 +266,7 @@ export class SyncQueueManager {
   abort(): void {
     if (this.abortController) {
       this.abortController.abort();
-      console.log('[SyncQueue] Processing aborted by user');
+      logger.debug('Processing aborted by user');
     }
   }
 
@@ -272,7 +275,7 @@ export class SyncQueueManager {
    */
   async clear(): Promise<void> {
     await syncQueue.clear(this.config.userId);
-    console.log('[SyncQueue] Queue cleared');
+    logger.debug('Queue cleared');
     this.notify();
   }
 

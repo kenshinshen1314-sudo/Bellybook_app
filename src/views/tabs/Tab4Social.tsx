@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Card } from '../../components/UIComponents';
+import { useThemeStyles } from '../../hooks/useThemeStyles';
 import { Language, TEXT, Theme } from '../../types';
 import { useDishExperts } from '@/hooks/useDishExperts';
 import { useUserCuisineBreakdown } from '@/hooks/useUserCuisineBreakdown';
@@ -7,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { UtensilsCrossed } from 'lucide-react';
 import { AllUsersDishesModal } from '@/components/AllUsersDishesModal';
 import { GourmetRankingModal } from '@/components/GourmetRankingModal';
+import { UserAvatar } from '@/components/shared/UserAvatar';
 import type { UserCuisineStats } from '@/api/ranking';
 
 interface Tab4SocialProps {
@@ -19,7 +21,7 @@ interface Tab4SocialProps {
 
 const Tab4Social: React.FC<Tab4SocialProps> = ({ lang, theme, onExpertsClick, onRankingClick, userId }) => {
   const t = TEXT[lang];
-  const textColor = theme === 'dark' ? 'text-white' : 'text-black';
+  const styles = useThemeStyles(theme);
   // Fetch dish experts from backend API
   const { experts, isLoading } = useDishExperts(lang);
   // Fetch user cuisine breakdown for gourmet ranking (stacked bar chart)
@@ -36,7 +38,7 @@ const Tab4Social: React.FC<Tab4SocialProps> = ({ lang, theme, onExpertsClick, on
 
   return (
     <>
-      <div className={`pb-28 pt-24 px-4 animate-fade-in ${textColor} space-y-8`}>
+      <div className={`pb-28 pt-24 px-4 animate-fade-in ${styles.textTitle} space-y-8`}>
         {/* Cuisine Experts - 按用户统计菜品数量，倒序展示 */}
         <div>
            <div className="flex justify-between items-end mb-4">
@@ -69,24 +71,18 @@ const Tab4Social: React.FC<Tab4SocialProps> = ({ lang, theme, onExpertsClick, on
                   return expert.rank.toString();
                 };
 
-                // Get avatar or use first letter of username
-                const avatarContent = expert.avatarUrl
-                  ? <img src={expert.avatarUrl} alt={expert.username} className="w-full h-full rounded-full object-cover" />
-                  : <span>{expert.username?.charAt(0)?.toUpperCase() || '?'}</span>;
-
                 return (
                   <div key={expert.userId} className="flex items-center justify-between p-3">
                      <div className="flex items-center flex-1">
                         <div className={`w-8 text-center text-lg mr-3 ${expert.rank <= 3 ? '' : 'text-gray-500'}`}>
                            {getBadge()}
                         </div>
-                        <div className="w-12 h-12 rounded-full flex items-center justify-center mr-3 text-white text-lg font-bold overflow-hidden"
-                           style={{
-                             background: 'linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, black) 100%)',
-                             boxShadow: '0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)'
-                           }}>
-                           {avatarContent}
-                        </div>
+                        <UserAvatar
+                          src={expert.avatarUrl}
+                          username={expert.username}
+                          size="md"
+                          className="mr-3"
+                        />
                         <div className="flex-1">
                            <div className="font-semibold text-sm">{expert.username}</div>
                            <div className="text-xs text-gray-500">
@@ -138,93 +134,98 @@ const Tab4Social: React.FC<Tab4SocialProps> = ({ lang, theme, onExpertsClick, on
               </div>
             ) : (
               <div className="h-full flex flex-col">
-                 {/* Stacked Bar Chart */}
-                 <div className="flex-1 flex items-end justify-center px-2 gap-4">
-                    {(() => {
-                       // Get top 5 users for the stacked bar chart (sorted by cuisine count)
-                       const topUsers = gourmetUsers.slice(0, 5);
+                 {/* Stacked Bar Chart - 设置最小宽度确保显示5个完整柱状图 */}
+                 <div className="flex-1 flex items-end overflow-x-auto overflow-y-hidden" style={{ minWidth: '460px', paddingTop: '16px', paddingBottom: '12px' }}>
+                    {/* 所有用户的柱状图容器 */}
+                    <div className="flex items-end gap-1" style={{ padding: '0 12px' }}>
+                       {(() => {
+                          // Use all users for the stacked bar chart (sorted by cuisine count)
+                          const allUsers = gourmetUsers;
 
-                       // Find max dish count per cuisine across all users for scaling
-                       const maxCuisineDishCount = Math.max(
-                         ...topUsers.flatMap(u => u.cuisines.map(c => c.dishCount)),
-                         1
-                       );
-                       const maxBarHeight = 200;
-                       const barScale = maxCuisineDishCount > 0 ? maxBarHeight / maxCuisineDishCount : 0;
+                          // 找到所有用户所有菜系中的最大菜品数量（用于统一缩放比例）
+                          const maxCuisineDishCount = Math.max(
+                            ...allUsers.flatMap(u => u.cuisines.map(c => c.dishCount)),
+                            1
+                          );
+                          const maxBarHeight = 160;
+                          // 统一的缩放比例，确保相同菜系的用户柱状图高度一致
+                          const barScale = maxCuisineDishCount > 0 ? maxBarHeight / maxCuisineDishCount : 0;
 
-                       return topUsers.map((user, userIndex) => {
-                         const avatarContent = user.avatarUrl
-                           ? <img src={user.avatarUrl} alt={user.username} className="w-full h-full rounded-full object-cover" />
-                           : <span>{user.username?.charAt(0)?.toUpperCase() || '?'}</span>;
-
-                         return (
-                           <div key={user.userId} className="flex flex-col items-center">
-                              {/* Stacked Bar - 每个菜系段高度根据菜品数量调整 */}
-                              <div className="flex flex-col-reverse items-center mb-2 relative" style={{ minHeight: '40px' }}>
-                                 {user.cuisines.map((cuisine) => {
-                                   const segmentHeight = cuisine.dishCount * barScale;
-                                   const minSegmentHeight = 6;
-                                   const displayHeight = Math.max(segmentHeight, minSegmentHeight);
-
-                                   return (
-                                     <div
-                                        key={cuisine.cuisineName}
-                                        className="w-12 flex items-center justify-center relative group"
-                                        style={{
-                                          height: `${displayHeight}px`,
-                                          backgroundColor: cuisine.color,
-                                          minHeight: `${minSegmentHeight}px`
-                                        }}
-                                        title={`${cuisine.cuisineName}: ${cuisine.dishCount} ${lang === Language.ZH ? '道菜' : 'dishes'}`}
-                                     >
-                                        {/* Show count if segment is large enough */}
-                                        {displayHeight > 14 && (
-                                          <span className="text-white text-xs font-bold drop-shadow-sm">
-                                             {cuisine.dishCount}
-                                          </span>
-                                        )}
-                                        {/* Tooltip on hover */}
-                                        <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block bg-black/80 text-white text-xs px-2 py-1 rounded whitespace-nowrap z-10">
-                                          {cuisine.cuisineName}: {cuisine.dishCount}
-                                        </div>
-                                     </div>
-                                   );
-                                 })}
-                              </div>
-
-                              {/* 用户头像 */}
+                          return allUsers.map((user, userIndex) => (
+                            // 每个柱状图固定宽度，不会被压缩或截断
+                            <div
+                              key={user.userId}
+                              className="flex flex-col items-center flex-shrink-0"
+                              style={{ width: '78px' }}
+                            >
+                              {/* Stacked Bar - 每个菜系段高度根据菜品数量按比例调整 */}
                               <div
-                                 className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold mb-1 overflow-hidden"
-                                 style={{
-                                   background: 'linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, black) 100%)',
-                                   boxShadow: '0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)'
-                                 }}
+                                className="flex flex-col-reverse items-center mb-1.5 relative"
+                                style={{ minHeight: '32px' }}
                               >
-                                 {avatarContent}
+                                {user.cuisines.map((cuisine) => {
+                                  // 根据统一的缩放比例计算高度，确保相同菜系的用户柱状图高度一致
+                                  const segmentHeight = cuisine.dishCount * barScale;
+                                  // 设置最小高度，确保即使菜品数少也能看到
+                                  const minSegmentHeight = 4;
+                                  const displayHeight = Math.max(segmentHeight, minSegmentHeight);
+
+                                  return (
+                                    <div
+                                      key={cuisine.cuisineName}
+                                      className="w-8 flex items-center justify-center relative group flex-shrink-0"
+                                      style={{
+                                        height: `${displayHeight}px`,
+                                        backgroundColor: cuisine.color,
+                                        minHeight: `${minSegmentHeight}px`
+                                      }}
+                                      title={`${cuisine.cuisineName}: ${cuisine.dishCount} ${lang === Language.ZH ? '道菜' : 'dishes'}`}
+                                    >
+                                      {/* Show count if segment is large enough */}
+                                      {displayHeight > 12 && (
+                                        <span className="text-white text-[9px] font-bold drop-shadow-sm">
+                                          {cuisine.dishCount}
+                                        </span>
+                                      )}
+                                      {/* Tooltip on hover */}
+                                      <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 hidden group-hover:block bg-black/80 text-white text-[10px] px-2 py-1 rounded whitespace-nowrap z-10">
+                                        {cuisine.cuisineName}: {cuisine.dishCount}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                               </div>
 
-                              {/* 用户名 */}
-                              <div className="text-xs text-gray-500 text-center max-w-[80px] truncate">
-                                 {user.username}
+                              {/* 用户头像 - 使用sm尺寸 */}
+                              <UserAvatar
+                                src={user.avatarUrl}
+                                username={user.username}
+                                size="sm"
+                                className="mb-0.5"
+                              />
+
+                              {/* 用户名 - 强制不换行 */}
+                              <div className="text-[10px] text-gray-500 text-center truncate w-full px-0.5" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {user.username}
                               </div>
 
-                              {/* 总菜系数 */}
-                              <div className="text-xs text-gray-400 text-center">
-                                 {user.cuisineCount} {lang === Language.ZH ? '个菜系' : 'cuisines'}
+                              {/* 总菜系数 - 显示"x 个菜系" */}
+                              <div className="text-[9px] text-gray-400 text-center whitespace-nowrap pb-2">
+                                {user.cuisineCount} {lang === Language.ZH ? '个菜系' : 'cuisines'}
                               </div>
-                           </div>
-                         );
-                       });
-                    })()}
+                            </div>
+                          ));
+                       })()}
+                    </div>
                  </div>
 
                  {/* Legend - 菜系颜色图例 */}
-                 <div className="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700">
+                 <div className="mt-4 pt-3 border-t border-[var(--border)]">
                     <div className="flex flex-wrap justify-center gap-3">
                        {(() => {
-                          // Collect all unique cuisines from top 5 users
+                          // Collect all unique cuisines from all users
                           const allCuisines = new Map<string, string>();
-                          gourmetUsers.slice(0, 5).forEach(user => {
+                          gourmetUsers.forEach(user => {
                             user.cuisines.forEach(cuisine => {
                               allCuisines.set(cuisine.cuisineName, cuisine.color);
                             });

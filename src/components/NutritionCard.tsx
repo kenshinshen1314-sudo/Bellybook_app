@@ -4,6 +4,7 @@ import { Flame, Drumstick, Wheat, Droplet, TrendingUp } from 'lucide-react';
 import { Card } from './ui/card';
 import { SkeletonStats } from './ui/skeleton';
 import { useMinDelay } from '@/hooks/useMinDelay';
+import { useThemeStyles } from '@/hooks/useThemeStyles';
 import { type Meal } from '@/db';
 import { Language, Theme } from '@/types';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -117,16 +118,24 @@ function calculateWeeklyTrends(meals: Meal[]): Array<{ day: string; cal: number 
 }
 
 /**
- * Animated number component
+ * Animated number component - 确保显示格式化的数字
  */
 function AnimatedNumber({ value, decimals = 0 }: { value: number; decimals?: number }) {
+  // 确保值是有效数字，避免 NaN 或 Infinity
+  const safeValue = Number.isFinite(value) ? value : 0;
+
+  // 使用 toFixed 处理小数位数，然后转换为 Number 去除尾随零
+  const formatted = decimals === 0
+    ? Math.round(safeValue).toString()
+    : safeValue.toFixed(decimals);
+
   return (
     <motion.span
       initial={{ opacity: 0, scale: 0.5 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
     >
-      {value.toFixed(decimals)}
+      {formatted}
     </motion.span>
   );
 }
@@ -145,6 +154,7 @@ function ProgressBar({
   color: string;
   theme: Theme;
 }) {
+  const styles = useThemeStyles(theme);
   const percentage = Math.min((value / max) * 100, 100);
 
   return (
@@ -176,6 +186,8 @@ export function NutritionCard({
   theme,
   isLoading = false
 }: NutritionCardProps) {
+  const styles = useThemeStyles(theme);
+
   // Calculate from meals if provided, otherwise use direct props
   const dailyNutrition = useMemo(() => {
     if (meals && meals.length >= 0) {
@@ -219,7 +231,7 @@ export function NutritionCard({
   // Show skeleton if loading or within minimum delay (prevents flash)
   if (showSkeleton) {
     return (
-      <Card className={`p-5 ${theme === 'dark' ? 'bg-[#1C1C1E]' : 'bg-white'}`}>
+      <Card className={`p-5 ${styles.bgCard}`}>
         <SkeletonStats />
       </Card>
     );
@@ -227,15 +239,15 @@ export function NutritionCard({
 
   if (!hasData) {
     return (
-      <Card className={`p-6 ${theme === 'dark' ? 'bg-[#1C1C1E]' : 'bg-white'}`}>
+      <Card className={`p-6 ${styles.bgCard}`}>
         <div className="flex flex-col items-center justify-center py-8 text-center">
           <div className={`w-16 h-16 rounded-full ${theme === 'dark' ? 'bg-gray-800' : 'bg-gray-100'} flex items-center justify-center mb-4`}>
             <TrendingUp className={`w-8 h-8 ${theme === 'dark' ? 'text-gray-600' : 'text-gray-400'}`} />
           </div>
-          <h3 className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>
+          <h3 className={`text-lg font-semibold ${styles.textTitle} mb-2`}>
             {language === Language.ZH ? '暂无数据' : 'No Data Yet'}
           </h3>
-          <p className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>
+          <p className={`text-sm ${styles.textSecondary}`}>
             {language === Language.ZH
               ? '记录第一餐后即可查看营养统计'
               : 'Start tracking meals to see nutrition stats'}
@@ -248,8 +260,8 @@ export function NutritionCard({
   return (
     <div className="space-y-4">
       {/* Daily Summary */}
-      <Card className={`p-5 ${theme === 'dark' ? 'bg-[#1C1C1E]' : 'bg-white'}`}>
-        <h3 className={`text-lg font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+      <Card className={`p-5 ${styles.bgCard}`}>
+        <h3 className={`text-lg font-bold mb-4 ${styles.textTitle}`}>
           {language === Language.ZH ? '今日营养摄入' : 'Today\'s Nutrition'}
         </h3>
 
@@ -258,12 +270,12 @@ export function NutritionCard({
           <div className="flex justify-between items-center mb-2">
             <div className="flex items-center space-x-2">
               <Flame size={18} className="text-orange-500" />
-              <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
+              <span className={`text-sm font-medium ${styles.textSecondary}`}>
                 {language === Language.ZH ? '热量' : 'Calories'}
               </span>
             </div>
-            <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-              <AnimatedNumber value={dailyNutrition.calories} /> / {goals.calories} kcal
+            <span className={`text-sm ${styles.textSecondary}`}>
+              <AnimatedNumber value={dailyNutrition.calories} decimals={0} /> / {goals.calories} kcal
             </span>
           </div>
           <ProgressBar value={dailyNutrition.calories} max={goals.calories} color={colors.calories} theme={theme} />
@@ -274,11 +286,11 @@ export function NutritionCard({
           <div className="flex justify-between items-center mb-2">
             <div className="flex items-center space-x-2">
               <Drumstick size={18} className="text-red-500" />
-              <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
+              <span className={`text-sm font-medium ${styles.textSecondary}`}>
                 {language === Language.ZH ? '蛋白质' : 'Protein'}
               </span>
             </div>
-            <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+            <span className={`text-sm ${styles.textSecondary}`}>
               <AnimatedNumber value={dailyNutrition.protein} decimals={1} /> / {goals.protein} g
             </span>
           </div>
@@ -290,11 +302,11 @@ export function NutritionCard({
           <div className="flex justify-between items-center mb-2">
             <div className="flex items-center space-x-2">
               <Droplet size={18} className="text-yellow-500" />
-              <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
+              <span className={`text-sm font-medium ${styles.textSecondary}`}>
                 {language === Language.ZH ? '脂肪' : 'Fat'}
               </span>
             </div>
-            <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+            <span className={`text-sm ${styles.textSecondary}`}>
               <AnimatedNumber value={dailyNutrition.fat} decimals={1} /> / {goals.fat} g
             </span>
           </div>
@@ -306,11 +318,11 @@ export function NutritionCard({
           <div className="flex justify-between items-center mb-2">
             <div className="flex items-center space-x-2">
               <Wheat size={18} className="text-green-500" />
-              <span className={`text-sm font-medium ${theme === 'dark' ? 'text-gray-200' : 'text-gray-700'}`}>
+              <span className={`text-sm font-medium ${styles.textSecondary}`}>
                 {language === Language.ZH ? '碳水' : 'Carbs'}
               </span>
             </div>
-            <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+            <span className={`text-sm ${styles.textSecondary}`}>
               <AnimatedNumber value={dailyNutrition.carbs} decimals={1} /> / {goals.carbs} g
             </span>
           </div>
@@ -320,8 +332,8 @@ export function NutritionCard({
 
       {/* Weekly Trends - only show if we have meals data */}
       {meals && weeklyTrends.length > 0 && (
-        <Card className={`p-5 ${theme === 'dark' ? 'bg-[#1C1C1E]' : 'bg-white'}`}>
-          <h3 className={`text-lg font-bold mb-4 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+        <Card className={`p-5 ${styles.bgCard}`}>
+          <h3 className={`text-lg font-bold mb-4 ${styles.textTitle}`}>
             {language === Language.ZH ? '本周趋势' : 'Weekly Trends'}
           </h3>
 

@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { getSyncQueue, type SyncQueueManager } from '@/sync/SyncQueue';
 import { syncProcessor, pullRemoteChanges } from '@/api/syncProcessor';
 import type { SyncStats, SyncStatus } from '@/sync/types';
+import { logger } from '@/utils/logger';
 
 export interface UseSyncOptions {
   /** User ID for sync operations */
@@ -75,7 +76,7 @@ export function useSync(options: UseSyncOptions): UseSyncReturn {
     if (!autoSync || !syncQueue) return;
 
     const handleOnline = async () => {
-      console.log('[useSync] Online detected, triggering sync...');
+      logger.info('[useSync]', 'Online detected, triggering sync...');
       try {
         // First, pull remote changes
         await pullRemoteChanges(stats.lastSyncTime || undefined);
@@ -83,7 +84,7 @@ export function useSync(options: UseSyncOptions): UseSyncReturn {
         // Then, push local changes
         await syncQueue.process(syncProcessor);
       } catch (error) {
-        console.error('[useSync] Auto-sync error:', error);
+        logger.error('[useSync]', 'Auto-sync error:', error);
       }
     };
 

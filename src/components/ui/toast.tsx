@@ -48,21 +48,21 @@ export function Toast({ toast, onClose, theme = 'dark' }: ToastProps) {
   const colors = {
     success: {
       bg: theme === 'dark' ? 'bg-green-900/90' : 'bg-green-50',
-      border: theme === 'dark' ? 'border-green-700' : 'border-green-200',
+      border: theme === 'dark' ? 'border-green-500/30' : 'border-green-200',
       icon: 'text-green-500',
       title: theme === 'dark' ? 'text-green-100' : 'text-green-900',
       message: theme === 'dark' ? 'text-green-200' : 'text-green-700',
     },
     error: {
       bg: theme === 'dark' ? 'bg-red-900/90' : 'bg-red-50',
-      border: theme === 'dark' ? 'border-red-700' : 'border-red-200',
+      border: theme === 'dark' ? 'border-red-500/30' : 'border-red-200',
       icon: 'text-red-500',
       title: theme === 'dark' ? 'text-red-100' : 'text-red-900',
       message: theme === 'dark' ? 'text-red-200' : 'text-red-700',
     },
     info: {
       bg: theme === 'dark' ? 'bg-blue-900/90' : 'bg-blue-50',
-      border: theme === 'dark' ? 'border-blue-700' : 'border-blue-200',
+      border: theme === 'dark' ? 'border-blue-500/30' : 'border-blue-200',
       icon: 'text-blue-500',
       title: theme === 'dark' ? 'text-blue-100' : 'text-blue-900',
       message: theme === 'dark' ? 'text-blue-200' : 'text-blue-700',

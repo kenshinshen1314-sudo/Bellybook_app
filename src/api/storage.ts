@@ -6,6 +6,9 @@
  */
 
 import { apiClient, tokenManager, API_BASE_URL, ApiRequestError } from './client';
+import { createModuleLogger } from '@/utils/logger';
+
+const logger = createModuleLogger('StorageAPI');
 
 /**
  * Food analysis result from backend AI
@@ -103,9 +106,9 @@ export const storage = {
 
     const url = `${API_BASE_URL}/storage/upload-with-analysis`;
 
-    console.log('[storage] Uploading to:', url);
-    console.log('[storage] File size:', file.size, 'bytes');
-    console.log('[storage] Has token:', !!token);
+    logger.debug('Uploading to:', url);
+    logger.debug('File size:', file.size, 'bytes');
+    logger.debug('Has token:', !!token);
 
     let response: Response;
     try {
@@ -117,9 +120,9 @@ export const storage = {
         },
         body: formData,
       });
-      console.log('[storage] Response status:', response.status, response.statusText);
+      logger.debug('Response status:', response.status, response.statusText);
     } catch (networkError) {
-      console.error('[storage] Network error:', networkError);
+      logger.error('Network error:', networkError);
       throw new ApiRequestError(
         `Network error: ${networkError instanceof Error ? networkError.message : 'Unknown error'}`,
         0,

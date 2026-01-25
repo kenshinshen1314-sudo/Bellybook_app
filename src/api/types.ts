@@ -17,7 +17,7 @@ export interface ApiResponse<T> {
 export interface ApiError {
   message: string;
   code?: string;
-  details?: any;
+  details?: Record<string, unknown>;
 }
 
 /**
@@ -89,11 +89,14 @@ export interface UpdateMealDto {
   notes?: string;
 }
 
+// Import types from db/schema for type consistency
+import type { MealAnalysis, UserProfile, UserSettings, Meal } from '@/db/schema';
+
 export interface MealResponse {
   id: string;
   userId: string;
   imageUrl: string;
-  analysis: any;
+  analysis: MealAnalysis;
   mealType?: string;
   notes?: string;
   createdAt: string;
@@ -131,14 +134,14 @@ export interface SyncPullParams {
 
 export interface SyncPullResponse {
   meals: MealResponse[];
-  profile?: any;
-  settings?: any;
+  profile?: UserProfile;
+  settings?: UserSettings;
   serverTime: string;
 }
 
 export interface SyncPushItem {
   type: 'CREATE_MEAL' | 'UPDATE_MEAL' | 'DELETE_MEAL' | 'UPDATE_PROFILE' | 'UPDATE_SETTINGS';
-  payload: any;
+  payload: Meal | UserProfile | UserSettings | { mealId: string; action: 'delete' };
   clientId: string;
 }
 

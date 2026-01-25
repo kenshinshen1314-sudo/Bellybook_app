@@ -12,6 +12,7 @@ import { RankingPeriod } from '@/api/ranking';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserUnlockedDishesModal } from './UserUnlockedDishesModal';
 import { cn } from '@/lib/utils';
+import { UserAvatar } from '@/components/shared/UserAvatar';
 import type { UserCuisineStats } from '@/api/ranking';
 
 interface AllUsersDishesModalProps {
@@ -106,7 +107,7 @@ export function AllUsersDishesModal({
             {/* Header */}
             <div className={cn(
               "flex items-center justify-between p-6 border-b",
-              isDark ? "border-white/10" : "border-gray-200"
+              isDark ? "border-white/10" : "border-[var(--border)]"
             )}>
               <div className="flex-1">
                 <h2 className={cn(
@@ -137,7 +138,7 @@ export function AllUsersDishesModal({
             {/* Period Selector */}
             <div className={cn(
               "p-4 border-b",
-              isDark ? "border-white/10" : "border-gray-200"
+              isDark ? "border-white/10" : "border-[var(--border)]"
             )}>
               <div className={cn(
                 "flex p-1 rounded-xl gap-1",
@@ -152,7 +153,7 @@ export function AllUsersDishesModal({
                       "hover:scale-[1.02] active:scale-[0.98]",
                       period === option.value
                         ? cn(
-                            isDark ? "bg-white text-black" : "bg-white text-black",
+                            isDark ? "bg-card text-card-foreground" : "bg-card text-card-foreground",
                             "shadow-[0_2px_8px_rgba(0,0,0,0.1)]"
                           )
                         : cn(
@@ -235,7 +236,7 @@ export function AllUsersDishesModal({
                             "hover:scale-[1.01] active:scale-[0.99]",
                             isDark
                               ? "bg-[#2C2C2E] border-white/10 hover:border-white/20 hover:bg-[#3C3C3E]"
-                              : "bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                              : "bg-white border-[var(--border)] hover:border-[var(--input-border)] hover:bg-gray-50"
                           )}
                         >
                           <div className="flex items-center gap-3">
@@ -257,26 +258,12 @@ export function AllUsersDishesModal({
                             )}
 
                             {/* User Avatar */}
-                            {entry.avatarUrl ? (
-                              <img
-                                src={entry.avatarUrl}
-                                alt={entry.username}
-                                className={cn(
-                                  "w-12 h-12 rounded-full object-cover flex-shrink-0",
-                                  "shadow-[0_4px_12px_rgba(0,0,0,0.15)]"
-                                )}
-                              />
-                            ) : (
-                              <div className={cn(
-                                "w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-lg flex-shrink-0"
-                              )}
-                              style={{
-                                background: 'linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, black) 100%)',
-                                boxShadow: '0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)'
-                              }}>
-                                {entry.username?.charAt(0)?.toUpperCase() || '?'}
-                              </div>
-                            )}
+                            <UserAvatar
+                              src={entry.avatarUrl}
+                              username={entry.username}
+                              size="md"
+                              className="flex-shrink-0"
+                            />
 
                             {/* User & Cuisine Info */}
                             <div className="flex-1 min-w-0">

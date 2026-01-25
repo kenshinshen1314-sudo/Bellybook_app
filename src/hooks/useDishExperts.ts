@@ -3,6 +3,7 @@ import { ranking } from '@/api';
 import type { DishExpertEntry, DishExpertsResponse, RankingPeriod } from '@/api/ranking';
 import { useToastNotification } from '@/contexts/ToastContext';
 import { Language } from '@/types';
+import { logger } from '@/utils/logger';
 
 interface UseDishExpertsResult {
   experts: DishExpertEntry[];
@@ -35,25 +36,22 @@ export function useDishExperts(
    * Load dish experts from backend API
    */
   const loadDishExperts = useCallback(async () => {
-    console.log('[useDishExperts] Starting to load dish experts...');
+    logger.info('[useDishExperts]', 'Starting to load dish experts...');
     setIsLoading(true);
     setError(null);
 
     try {
-      console.log('[useDishExperts] Calling ranking.getDishExperts with:', { period });
+      logger.debug('[useDishExperts]', 'Calling ranking.getDishExperts with:', { period });
       const response = await ranking.getDishExperts(period);
-      console.log('[useDishExperts] Response received:', response);
-      console.log('[useDishExperts] Experts count:', response.experts?.length);
-      console.log('[useDishExperts] Experts data:', JSON.stringify(response.experts, null, 2));
+      logger.debug('[useDishExperts]', 'Experts count:', response.experts?.length);
       setData({
-        experts: response.experts,
+        experts: response.experts || [],
         period: response.period,
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load dish experts';
       setError(errorMessage);
-      console.error('[useDishExperts] Error loading dish experts:', err);
-      console.error('[useDishExperts] Error details:', JSON.stringify(err));
+      logger.error('[useDishExperts]', 'Error loading dish experts:', err);
 
       showError(
         lang === Language.ZH ? '加载失败' : 'Load Failed',

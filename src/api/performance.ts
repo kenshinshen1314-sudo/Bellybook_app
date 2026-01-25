@@ -2,6 +2,10 @@
  * Performance and Retry Utilities for API Client
  */
 
+import { createModuleLogger } from '@/utils/logger';
+
+const logger = createModuleLogger('APIPerformance');
+
 // ============================================================================
 // Retry Configuration
 // ============================================================================
@@ -92,7 +96,7 @@ export async function retryWithBackoff<T>(
       }
 
       const delay = calculateRetryDelay(attempt, config.retryDelay);
-      console.log(`[API] Retrying request (attempt ${attempt + 1}/${config.maxRetries}) after ${delay.toFixed(0)}ms`);
+      logger.debug(`Retrying request (attempt ${attempt + 1}/${config.maxRetries}) after ${delay.toFixed(0)}ms`);
       await sleep(delay);
     }
   }

@@ -75,7 +75,7 @@ export function UserUnlockedDishesModal({
           {/* Header */}
           <div className={cn(
             "flex items-center justify-between p-6 border-b",
-            isDark ? "border-white/10" : "border-gray-200"
+            isDark ? "border-white/10" : "border-[var(--border)]"
           )}>
             <button
               onClick={onClose}
@@ -174,7 +174,7 @@ export function UserUnlockedDishesModal({
                           "rounded-xl p-4 border",
                           isDark
                             ? "bg-[#2C2C2E] border-white/10"
-                            : "bg-white border-gray-200 shadow-sm"
+                            : "bg-white border-[var(--border)] shadow-sm"
                         )}
                       >
                         <div className="flex gap-4">
@@ -244,7 +244,7 @@ export function UserUnlockedDishesModal({
                         {dish.calories && (
                           <div className={cn(
                             "mt-3 pt-3 border-t",
-                            isDark ? "border-white/10" : "border-gray-100"
+                            isDark ? "border-white/10" : "border-[var(--border)]"
                           )}>
                             <div className={cn("text-xs", isDark ? "text-gray-400" : "text-gray-500")}>
                               {language === Language.ZH ? '热量' : 'Calories'}: {dish.calories} kcal
@@ -254,7 +254,7 @@ export function UserUnlockedDishesModal({
                         {dish.notes && (
                           <div className={cn(
                             "mt-2 pt-2 border-t",
-                            isDark ? "border-white/10" : "border-gray-100"
+                            isDark ? "border-white/10" : "border-[var(--border)]"
                           )}>
                             <div className={cn("text-xs italic", isDark ? "text-gray-400" : "text-gray-500")}>
                               {dish.notes}

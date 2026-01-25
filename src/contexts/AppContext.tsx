@@ -1,6 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useProfile, useMeals } from '@/hooks';
+import { useAuth } from './AuthContext';
 import { type Meal, type UserProfile, type UserSettings, type DailyNutrition } from '@/db';
+import { Language, Theme, AppView } from '@/types';
+import type { AuthSession } from '@/api/auth';
+import { createModuleLogger } from '@/utils/logger';
+
+const logger = createModuleLogger('AppContext');
+
+// ============================================================
+// 类型定义
+// ============================================================
 
 // Action types
 export type AppAction =
@@ -26,23 +36,53 @@ interface AppState {
   error: string | null;
 }
 
-// Context interface
+// Context interface - 扩展包含视图路由和 UI 状态
 interface AppContextValue extends AppState {
-  // Actions
+  // ============================================================
+  // 认证信息 (来自 AuthContext)
+  // ============================================================
+  userId: string;
+  isAuthenticated: boolean;
+  user: AuthSession | null;
+
+  // ============================================================
+  // 派生状态 - 语言和主题
+  // ============================================================
+  language: Language;
+  theme: Theme;
+
+  // ============================================================
+  // 视图路由状态
+  // ============================================================
+  currentView: AppView;
+  setCurrentView: (view: AppView) => void;
+  navigateBack: () => void;
+
+  // ============================================================
+  // 刷新触发器
+  // ============================================================
+  refreshTrigger: number;
+  incrementRefreshTrigger: () => void;
+
+  // ============================================================
+  // 操作 - 原有
+  // ============================================================
   dispatch: React.Dispatch<AppAction>;
   addMeal: (meal: Meal) => Promise<void>;
   updateMeal: (meal: Meal) => Promise<void>;
   deleteMeal: (mealId: string) => Promise<void>;
-
-  // Profile actions
   updateTheme: (theme: 'light' | 'dark') => Promise<void>;
   updateLanguage: (language: 'zh' | 'en') => Promise<void>;
 
-  // Selectors
+  // ============================================================
+  // 选择器
+  // ============================================================
   getDailyStats: (date: string) => Promise<DailyNutrition | null>;
   getWeeklyStats: (startDate: string, endDate: string) => Promise<Meal[]>;
 
-  // Refresh
+  // ============================================================
+  // 刷新
+  // ============================================================
   refresh: () => Promise<void>;
 }
 
@@ -58,11 +98,24 @@ interface AppProviderProps {
 const DEFAULT_USER_ID = 'current-user';
 
 /**
- * AppContext Provider - Centralized state management
- * Manages user profile, settings, and meals data
+ * AppContext Provider - 全局状态管理
+ * 管理用户信息、设置、餐食数据、视图路由
+ *
+ * 职责：
+ * - 整合 AuthContext, useProfile, useMeals
+ * - 提供统一的视图路由管理
+ * - 消除 props drilling
  */
-export function AppProvider({ children, userId = DEFAULT_USER_ID }: AppProviderProps) {
-  // Custom hooks
+export function AppProvider({ children, userId: propUserId }: AppProviderProps) {
+  // ============================================================
+  // 认证信息
+  // ============================================================
+  const { isAuthenticated, isLoading: authLoading, user } = useAuth();
+  const userId = propUserId || user?.userId || DEFAULT_USER_ID;
+
+  // ============================================================
+  // 用户配置与餐食数据
+  // ============================================================
   const { profile, settings, isLoading: profileLoading, updateTheme, updateLanguage } = useProfile(userId);
   const {
     meals,
@@ -75,9 +128,41 @@ export function AppProvider({ children, userId = DEFAULT_USER_ID }: AppProviderP
     refresh: refreshMeals,
   } = useMeals(userId);
 
-  // Local state
+  // ============================================================
+  // UI 状态
+  // ============================================================
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [currentView, setCurrentView] = useState<AppView>(AppView.MAIN_TABS);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+  // ============================================================
+  // 派生状态
+  // ============================================================
+  const language: Language = settings?.language === 'zh' ? Language.ZH : Language.EN;
+  const theme: Theme = settings?.theme === 'dark' ? 'dark' : 'light';
+
+  // ============================================================
+  // 导航操作
+  // ============================================================
+  const navigateBack = useCallback(() => {
+    setCurrentView(AppView.MAIN_TABS);
+  }, []);
+
+  const incrementRefreshTrigger = useCallback(() => {
+    setRefreshTrigger(prev => prev + 1);
+  }, []);
+
+  // ============================================================
+  // 副作用 - 主题应用到 document
+  // ============================================================
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
 
   /**
    * Dispatch function for state updates
@@ -91,7 +176,7 @@ export function AppProvider({ children, userId = DEFAULT_USER_ID }: AppProviderP
         setError(action.payload);
         break;
       default:
-        console.warn('[AppContext] Unknown action:', action);
+        logger.warn('Unknown action:', action);
     }
   }, []);
 
@@ -101,11 +186,11 @@ export function AppProvider({ children, userId = DEFAULT_USER_ID }: AppProviderP
   const addMeal = useCallback(async (meal: Meal) => {
     try {
       await saveMeal(meal.imageUrl, meal.analysis, meal.mealType, meal.notes);
-      console.log('[AppContext] Meal added:', meal.id);
+      logger.debug('Meal added:', meal.id);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to add meal';
       setError(errorMessage);
-      console.error('[AppContext] Error adding meal:', err);
+      logger.error('Error adding meal:', err);
       throw err;
     }
   }, [saveMeal]);
@@ -116,11 +201,11 @@ export function AppProvider({ children, userId = DEFAULT_USER_ID }: AppProviderP
   const updateMeal = useCallback(async (meal: Meal) => {
     try {
       await updateMealHook(meal);
-      console.log('[AppContext] Meal updated:', meal.id);
+      logger.debug('Meal updated:', meal.id);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update meal';
       setError(errorMessage);
-      console.error('[AppContext] Error updating meal:', err);
+      logger.error('Error updating meal:', err);
       throw err;
     }
   }, [updateMealHook]);
@@ -131,11 +216,11 @@ export function AppProvider({ children, userId = DEFAULT_USER_ID }: AppProviderP
   const deleteMeal = useCallback(async (mealId: string) => {
     try {
       await deleteMealHook(mealId);
-      console.log('[AppContext] Meal deleted:', mealId);
+      logger.debug('Meal deleted:', mealId);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete meal';
       setError(errorMessage);
-      console.error('[AppContext] Error deleting meal:', err);
+      logger.error('Error deleting meal:', err);
       throw err;
     }
   }, [deleteMealHook]);
@@ -190,7 +275,7 @@ export function AppProvider({ children, userId = DEFAULT_USER_ID }: AppProviderP
         updatedAt: new Date().toISOString(),
       };
     } catch (err) {
-      console.error('[AppContext] Error getting daily stats:', err);
+      logger.error('Error getting daily stats:', err);
       return null;
     }
   }, [userId, getMealsByDateRange]);
@@ -206,7 +291,7 @@ export function AppProvider({ children, userId = DEFAULT_USER_ID }: AppProviderP
     try {
       return getMealsByDateRange(startDate, endDate);
     } catch (err) {
-      console.error('[AppContext] Error getting weekly stats:', err);
+      logger.error('Error getting weekly stats:', err);
       return [];
     }
   }, [getMealsByDateRange]);
@@ -220,11 +305,11 @@ export function AppProvider({ children, userId = DEFAULT_USER_ID }: AppProviderP
 
     try {
       await refreshMeals();
-      console.log('[AppContext] Data refreshed');
+      logger.debug('Data refreshed');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to refresh data';
       setError(errorMessage);
-      console.error('[AppContext] Error refreshing:', err);
+      logger.error('Error refreshing:', err);
     } finally {
       setIsLoading(false);
     }
@@ -232,13 +317,37 @@ export function AppProvider({ children, userId = DEFAULT_USER_ID }: AppProviderP
 
   // Context value
   const value: AppContextValue = {
-    // State
+    // ============================================================
+    // 认证信息
+    // ============================================================
+    userId,
+    isAuthenticated,
+    user,
+
+    // ============================================================
+    // 派生状态
+    // ============================================================
+    language,
+    theme,
+
+    // ============================================================
+    // UI 状态
+    // ============================================================
+    currentView,
+    setCurrentView,
+    navigateBack,
+    refreshTrigger,
+    incrementRefreshTrigger,
+
+    // ============================================================
+    // 原有状态
+    // ============================================================
     profile,
     settings,
     meals,
     mealsLoading,
     mealsError,
-    isLoading: isLoading || profileLoading,
+    isLoading: isLoading || profileLoading || authLoading,
     error,
 
     // Actions

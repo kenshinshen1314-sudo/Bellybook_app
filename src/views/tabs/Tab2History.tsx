@@ -4,13 +4,16 @@ import { Card } from '../../components/UIComponents';
 import { MealList } from '../../components/MealList';
 import { StripCalendar } from '../../components/StripCalendar';
 import { MealDetailModal } from '../../components/MealDetailModal';
+import { useThemeStyles } from '../../hooks/useThemeStyles';
 import { Language, TEXT, Theme } from '../../types';
 import { ResponsiveContainer, LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid, LabelList, Cell, ScatterChart, Scatter, ZAxis } from 'recharts';
 import { Sun, CloudSun, Moon, Coffee, ChevronLeft, ChevronRight, Calendar, Flame, UtensilsCrossed, TrendingUp, Sparkles } from 'lucide-react';
 import { useBackendMeals } from '@/hooks/useBackendMeals';
+import { useUserUnlockedDishes } from '@/hooks/useUserUnlockedDishes';
 import { useToastNotification } from '@/contexts/ToastContext';
 import { useMinDelay } from '@/hooks/useMinDelay';
 import { translateCuisine } from '../../utils/translationUtils';
+import { logger } from '@/utils/logger';
 
 interface Tab2HistoryProps {
   lang: Language;
@@ -123,24 +126,23 @@ function IngredientCard({
   theme: Theme;
   index: number;
 }) {
-  const cardBg = theme === 'dark' ? 'bg-[#2C2C2E]' : 'bg-white border border-gray-200';
-  const textColor = theme === 'dark' ? 'text-white' : 'text-gray-800';
-  const descColor = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
+  const styles = useThemeStyles(theme);
+  const tagBg = theme === 'dark' ? 'bg-gray-700' : 'bg-white/70';
 
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ delay: index * 0.05 }}
-      className={`${cardBg} rounded-2xl p-4 min-w-[140px] max-w-[160px]`}
+      className={`${styles.bgCard} ${styles.border} rounded-2xl p-4 min-w-[140px] max-w-[160px]`}
     >
       <div className="flex items-center justify-between mb-2">
-        <span className={`text-sm font-bold ${textColor} px-2 py-0.5 rounded-full ${theme === 'dark' ? 'bg-gray-700' : 'bg-white/70'}`}>
+        <span className={`text-sm font-bold ${styles.textTitle} px-2 py-0.5 rounded-full ${tagBg}`}>
           {name}
         </span>
         <span className="text-2xl">{icon}</span>
       </div>
-      <p className={`text-xs ${descColor} line-clamp-2 leading-relaxed`}>
+      <p className={`text-xs ${styles.textSecondary} line-clamp-2 leading-relaxed`}>
         {description}
       </p>
     </motion.div>
@@ -164,13 +166,8 @@ interface Ball {
 }
 
 const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, theme, refreshTrigger, userId }) => {
-  console.log('[Tab2History] Render:', { lang, userId, refreshTrigger });
   const t = TEXT[lang];
-  const textColor = theme === 'dark' ? 'text-white' : 'text-black';
-  const textTitle = theme === 'dark' ? 'text-white/90' : 'text-black/90';
-  const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
-  const textTertiary = theme === 'dark' ? 'text-gray-500' : 'text-gray-500';
-  const cardBg = theme === 'dark' ? 'bg-[#1C1C1E]' : 'bg-white';
+  const styles = useThemeStyles(theme);
   const axisColor = theme === 'dark' ? '#555' : '#ddd';
   const tooltipBg = theme === 'dark' ? '#333' : '#fff';
   const tooltipColor = theme === 'dark' ? '#fff' : '#000';
@@ -202,6 +199,7 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
 
   // Load meals from backend API - use userId from props to get correct user's meals
   const { meals, isLoading: mealsLoading, refresh, deleteMeal, updateMeal } = useBackendMeals(userId, lang);
+  const { data: unlockedDishesData } = useUserUnlockedDishes(userId);
   const { showSuccess, showError } = useToastNotification();
   const { showSkeleton } = useMinDelay(mealsLoading, 300);
 
@@ -245,7 +243,7 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
       await updateMeal(updatedMeal);
       setSelectedMeal(updatedMeal);
     } catch (error) {
-      console.error('[Tab2History] Failed to update meal:', error);
+      logger.error('[Tab2History] Failed to update meal:', error);
       showError(
         lang === Language.ZH ? '更新失败' : 'Update Failed',
         lang === Language.ZH ? '请重试' : 'Please try again'
@@ -395,13 +393,35 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
     return data;
   }, [meals, lang, selectedDate]);
 
-  // Generate cuisine statistics data
+  // Note: cuisine data is now directly available at meal.analysis.dishes[0].cuisine
+  // No need for complex dishToCuisineMap mapping anymore
+  // Keeping the hook call for data consistency, but map is no longer used
+  useMemo(() => {
+    if (unlockedDishesData?.dishes) {
+      logger.debug('[Tab2History] Unlocked dishes available:', unlockedDishesData.dishes.length);
+    } else {
+      logger.warn('[Tab2History] No unlockedDishesData available');
+    }
+  }, [unlockedDishesData]);
+
+  // Generate cuisine statistics data - simplified approach
+  // The cuisine is already available at meal.analysis.dishes[0].cuisine
   const cuisineStatsData = useMemo(() => {
     // Count meals by cuisine
     const cuisineCountMap = new Map<string, number>();
 
     meals.forEach(meal => {
-      const cuisine = meal.analysis?.cuisine;
+      const dishes = meal.analysis?.dishes;
+      // Direct access to dishes[0].cuisine which has the correct value
+      let cuisine = undefined;
+      if (dishes && dishes.length > 0 && dishes[0].cuisine) {
+        cuisine = dishes[0].cuisine;
+      }
+      // Fall back to meal.analysis.cuisine
+      if (!cuisine) {
+        cuisine = meal.analysis?.cuisine;
+      }
+
       if (cuisine && cuisine.trim()) {
         const count = cuisineCountMap.get(cuisine) || 0;
         cuisineCountMap.set(cuisine, count + 1);
@@ -943,12 +963,12 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
       />
 
       {/* Energy Balls - Physics Simulation */}
-      <Card theme={theme} className={`${cardBg} p-4`}>
+      <Card theme={theme} className={`${styles.bgCard} p-4`}>
         <div className="flex items-center justify-between mb-3">
-          <h2 className={`text-lg font-semibold ${textTitle}`}>
+          <h2 className={`text-lg font-semibold ${styles.textTitle}`}>
             {lang === Language.ZH ? '营养构成' : 'Nutrition Breakdown'}
           </h2>
-          <div className={`flex items-center gap-1 ${textSecondary}`}>
+          <div className={`flex items-center gap-1 ${styles.textSecondary}`}>
             <Flame size={16} className="text-orange-500" />
             <span className={`text-sm font-medium`}>{Math.round(selectedDateNutrition.calories)} kcal</span>
           </div>
@@ -1016,21 +1036,21 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
       </Card>
 
       <div>
-        <h2 className={`text-lg font-semibold mb-3 ${textTitle}`}>
+        <h2 className={`text-lg font-semibold mb-3 ${styles.textTitle}`}>
           {lang === Language.ZH
             ? `${selectedDate.getMonth() + 1}月${selectedDate.getDate()}日`
             : selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {lang === Language.ZH ? '餐食' : 'Meals'}
         </h2>
         {selectedDateMeals.length === 0 ? (
-          <Card theme={theme} className={`${cardBg} p-8`}>
+          <Card theme={theme} className={`${styles.bgCard} p-8`}>
             <div className="flex flex-col items-center justify-center text-center py-8">
               <div className={`w-16 h-16 rounded-full ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-100'} flex items-center justify-center mb-4`}>
                 <UtensilsCrossed size={32} className={theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} />
               </div>
-              <p className={`text-lg font-medium ${textTitle} mb-2`}>
+              <p className={`text-lg font-medium ${styles.textTitle} mb-2`}>
                 {lang === Language.ZH ? '今天还没有记录餐食' : 'No meals recorded today'}
               </p>
-              <p className={`text-sm ${textSecondary}`}>
+              <p className={`text-sm ${styles.textSecondary}`}>
                 {lang === Language.ZH
                   ? '去首页拍照记录第一餐吧！'
                   : 'Go to the home page to record your first meal!'}
@@ -1040,17 +1060,17 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {selectedDateMealsData.map(({ key, label, icon, color, cal, count }) => (
-              <Card key={key} theme={theme} className={`${cardBg} p-4`}>
+              <Card key={key} theme={theme} className={`${styles.bgCard} p-4`}>
                 <div className="flex items-center justify-between mb-2">
                   <div className={`w-10 h-10 rounded-full ${color} flex items-center justify-center`}>
                     {icon}
                   </div>
                   <div className="text-right">
-                    <div className={`text-xl font-bold ${textTitle}`}>{cal}</div>
-                    <div className={`text-xs ${textTertiary}`}>kcal</div>
+                    <div className={`text-xl font-bold ${styles.textTitle}`}>{cal}</div>
+                    <div className={`text-xs ${styles.textTertiary}`}>kcal</div>
                   </div>
                 </div>
-                <div className={`text-sm ${textSecondary}`}>
+                <div className={`text-sm ${styles.textSecondary}`}>
                   {label} ({count})
                 </div>
               </Card>
@@ -1061,7 +1081,7 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
 
       {/* Recent Meals History */}
       <div>
-        <h2 className={`text-lg font-semibold mb-3 ${textTitle}`}>
+        <h2 className={`text-lg font-semibold mb-3 ${styles.textTitle}`}>
           {lang === Language.ZH ? '最近记录' : 'Recent Meals'}
         </h2>
         <MealList
@@ -1072,19 +1092,20 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
           onMealClick={handleMealClick}
           onMealDelete={handleDeleteMeal}
           hideDateHeaders
+          dishToCuisineMap={undefined}
         />
       </div>
 
       {/* Weekly Trend Chart */}
       <div>
-        <h2 className={`text-lg font-semibold mb-3 ${textTitle}`}>
+        <h2 className={`text-lg font-semibold mb-3 ${styles.textTitle}`}>
           {lang === Language.ZH ? '营养趋势' : 'Nutrition Trend'}
         </h2>
-        <Card theme={theme} className={`${cardBg} p-4`}>
-          <div className="h-80 w-full flex flex-col">
+        <Card theme={theme} className={`${styles.bgCard} p-4`}>
+          <div className="w-full flex flex-col gap-2">
             {/* Line Chart - Calories */}
-            <div className="flex-1 w-full">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="w-full" style={{ height: '180px' }}>
+              <ResponsiveContainer width="100%" height="100%" debounce={1}>
                 <LineChart data={weeklyTrendData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
                   <defs>
                     <linearGradient id="caloriesGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -1166,8 +1187,8 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
             </div>
 
             {/* Bar Chart - Macros */}
-            <div className="h-32 w-full mt-2">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="w-full" style={{ height: '120px' }}>
+              <ResponsiveContainer width="100%" height="100%" debounce={1}>
                 <BarChart data={weeklyTrendData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
                   <defs>
                     <linearGradient id="proteinGradient" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -1219,13 +1240,13 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
 
       {/* Cuisine Exploration */}
       <div>
-        <h2 className={`text-lg font-semibold mb-3 ${textTitle}`}>
+        <h2 className={`text-lg font-semibold mb-3 ${styles.textTitle}`}>
           {lang === Language.ZH ? '菜系探索' : 'Cuisine Exploration'}
         </h2>
-        <Card theme={theme} className={`${cardBg} p-4`}>
-          <div className="w-full" style={{ height: Math.max(200, cuisineStatsData.length * 36) }}>
+        <Card theme={theme} className={`${styles.bgCard} p-4`}>
+          <div className="w-full" style={{ height: '260px' }}>
             {cuisineStatsData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" debounce={1}>
                 <BarChart
                   data={cuisineStatsData}
                   layout="vertical"
@@ -1312,13 +1333,13 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
 
       {/* Meal Pattern */}
       <div>
-        <h2 className={`text-lg font-semibold mb-3 ${textTitle}`}>
+        <h2 className={`text-lg font-semibold mb-3 ${styles.textTitle}`}>
           {lang === Language.ZH ? '用餐规律' : 'Meal Pattern'}
         </h2>
-        <Card theme={theme} className={`${cardBg} p-4`}>
-          <div className="h-72 w-full">
+        <Card theme={theme} className={`${styles.bgCard} p-4`}>
+          <div className="w-full" style={{ height: '290px' }}>
             {mealPatternData.data.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height="100%" debounce={1}>
                 <ScatterChart
                   data={mealPatternData.data}
                   margin={{ top: 20, right: 20, left: 50, bottom: 20 }}
@@ -1426,10 +1447,10 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
 
       {/* Food Diversity */}
       <div>
-        <h2 className={`text-lg font-semibold mb-3 ${textTitle}`}>
+        <h2 className={`text-lg font-semibold mb-3 ${styles.textTitle}`}>
           {lang === Language.ZH ? '食物多样性' : 'Food Diversity'}
         </h2>
-        <Card theme={theme} className={`${cardBg} p-4`}>
+        <Card theme={theme} className={`${styles.bgCard} p-4`}>
           {/* Stats Section */}
           <div className="flex items-center justify-around mb-4">
             {/* Total Types */}
@@ -1437,10 +1458,10 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
               <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-3 ${theme === 'dark' ? 'bg-gradient-to-br from-primary/20 to-primary/5' : 'bg-gradient-to-br from-primary/10 to-primary/5'}`}>
                 <UtensilsCrossed className={`w-8 h-8 ${theme === 'dark' ? 'text-primary' : 'text-primary'}`} />
               </div>
-              <div className={`text-3xl font-bold mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              <div className={`text-3xl font-bold mb-1 ${styles.textTitle}`}>
                 {foodDiversityStats.totalTypes}
               </div>
-              <div className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              <div className={`text-sm ${styles.textSecondary}`}>
                 {lang === Language.ZH ? '食物总类' : 'Total Types'}
               </div>
             </div>
@@ -1453,10 +1474,10 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
               <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-3 ${theme === 'dark' ? 'bg-gradient-to-br from-orange-500/20 to-orange-500/5' : 'bg-gradient-to-br from-orange-500/10 to-orange-500/5'}`}>
                 <Sparkles className={`w-8 h-8 text-orange-500`} />
               </div>
-              <div className={`text-3xl font-bold mb-1 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              <div className={`text-3xl font-bold mb-1 ${styles.textTitle}`}>
                 {foodDiversityStats.newThisWeek}
               </div>
-              <div className={`text-sm ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+              <div className={`text-sm ${styles.textSecondary}`}>
                 {lang === Language.ZH ? '本周新增' : 'New This Week'}
               </div>
             </div>
@@ -1504,7 +1525,7 @@ const Tab2History: React.FC<Tab2HistoryProps> = ({ lang, isPremium, onUpgrade, t
           onClose={() => setSelectedMeal(null)}
           onUpdate={handleUpdateMeal}
           onDelete={handleDeleteFromModal}
-          onShare={() => console.log('Share meal')}
+          onShare={() => logger.debug('[Tab2History] Share meal clicked')}
           lang={lang}
           theme={theme}
         />

@@ -14,6 +14,9 @@ import {
   createOfflineError,
 } from './offlineFallback';
 import type { TokenPair } from './types';
+import { createModuleLogger } from '@/utils/logger';
+
+const logger = createModuleLogger('AuthAPI');
 
 // ============================================================================
 // Types
@@ -54,6 +57,7 @@ export interface AuthSession {
   username: string;
   displayName: string;
   email?: string;
+  avatarUrl?: string | null;
   token: string;
 }
 
@@ -134,7 +138,7 @@ export async function logout(): Promise<void> {
   try {
     await apiClient.post('/auth/logout', {}, {});
   } catch (error) {
-    console.warn('[Auth API] Logout request failed:', error);
+    logger.warn('Logout request failed:', error);
   } finally {
     // Always clear local tokens and offline session
     tokenManager.clearTokens();

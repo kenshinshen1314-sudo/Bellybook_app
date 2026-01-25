@@ -5,6 +5,10 @@
  * Version: 1
  */
 
+import { createModuleLogger } from '@/utils/logger';
+
+const logger = createModuleLogger('DBSchema');
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -86,6 +90,7 @@ export interface MealAnalysis {
   suggestions?: string[];
   poeticDescription?: string;
   nutritionCommentary?: string;
+  historicalBackground?: string;
   analyzedAt: string; // ISO timestamp
 }
 
@@ -228,7 +233,7 @@ export function createObjectStores(db: IDBDatabase): void {
  * Increment version number when schema changes and handle migrations here
  */
 export function handleMigration(db: IDBDatabase, oldVersion: number, newVersion: number): void {
-  console.log(`[DB] Migrating from version ${oldVersion} to ${newVersion}`);
+  logger.info(`Migrating from version ${oldVersion} to ${newVersion}`);
 
   // Example migration from version 1 to 2
   // if (oldVersion < 2) {

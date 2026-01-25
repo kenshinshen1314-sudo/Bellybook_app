@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { storage, type UploadWithAnalysisResponse, type FoodAnalysisResult } from '@/api/storage';
 import { ApiRequestError } from '@/api/client';
 import type { AnalysisResult } from '@/types';
+import { logger } from '@/utils/logger';
 
 export interface BackendUploadState {
   imageUrl: string | null;
@@ -58,7 +59,7 @@ export function useBackendUpload(): BackendUploadResult {
       const localImageUrl = await fileToBase64(file);
       setImageUrl(localImageUrl);
     } catch (err) {
-      console.error('[useBackendUpload] Failed to read local file:', err);
+      logger.error('[useBackendUpload]', 'Failed to read local file:', err);
       // Continue anyway, backend upload will work
     }
 
@@ -90,7 +91,7 @@ export function useBackendUpload(): BackendUploadResult {
       setImageUrl(upload.url);
       setAnalysis(frontendAnalysis);
 
-      console.log('[useBackendUpload] Upload successful:', {
+      logger.info('[useBackendUpload]', 'Upload successful:', {
         imageUrl: upload.url,
         mealId: meal.id,
         quota: quota,
@@ -109,7 +110,7 @@ export function useBackendUpload(): BackendUploadResult {
         const errorMessage = err instanceof Error ? err.message : 'Upload failed';
         setError(errorMessage);
       }
-      console.error('[useBackendUpload] Upload error:', err);
+      logger.error('[useBackendUpload]', 'Upload error:', err);
     } finally {
       setIsUploading(false);
     }

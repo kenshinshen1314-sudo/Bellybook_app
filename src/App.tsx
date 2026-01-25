@@ -11,6 +11,9 @@ import { ConflictBanner } from './components/ConflictBanner';
 import { ConflictResolutionModal } from './components/ConflictResolutionModal';
 import { ProfileEdit } from './components/ProfileEdit';
 import { TimePicker } from './components/TimePicker';
+import { UserAvatar } from './components/shared/UserAvatar';
+import { ErrorBoundary } from './components/shared/ErrorBoundary';
+import { useThemeStyles } from './hooks/useThemeStyles';
 import { cn } from './lib/utils';
 import { fadeInUp, pageTransition } from './lib/motion';
 import { useOnline } from './hooks/useOnline';
@@ -29,6 +32,7 @@ import { AnalysisResultView } from './views/AnalysisResultView';
 import { DesignSystemView } from './views/DesignSystemView';
 import { useUserUnlockedDishes } from './hooks/useUserUnlockedDishes';
 import * as api from './api';
+import { logger } from '@/utils/logger';
 
 // Lazy load tabs for code splitting
 const Tab1Home = React.lazy(() => import('./views/tabs/Tab1Home'));
@@ -69,15 +73,13 @@ export default function App() {
   const [activeTab, setActiveTab] = useState(0);
   const [previousTab, setPreviousTab] = useState(0);
   const [isPremium, setIsPremium] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [showConflictModal, setShowConflictModal] = useState(false);
   const [showLimitOverlay, setShowLimitOverlay] = useState(false);
   const [selectedCuisine, setSelectedCuisine] = useState<string | null>(null);
   const [selectedDish, setSelectedDish] = useState<string | null>(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
-
-  console.log('App Render:', { currentView, selectedCuisine, selectedDish, userId, isAuthenticated, user });
 
   // Global meals data for sub-views - pass userId to get correct user's meals
   const { meals, refresh: refreshMeals } = useMeals(userId);
@@ -92,7 +94,6 @@ export default function App() {
   // Refresh meals when refreshTrigger changes
   useEffect(() => {
     if (refreshTrigger > 0) {
-      console.log('[App] Refreshing meals and stats due to refreshTrigger:', refreshTrigger);
       refreshMeals();
       refreshStats();
     }
@@ -169,11 +170,13 @@ export default function App() {
   // Use settings values with defaults for initial render
   const language = settings?.language === 'zh' ? Language.ZH : Language.EN;
   const theme: Theme = settings?.theme === 'dark' ? 'dark' : 'light';
+  const styles = useThemeStyles(theme);
 
   // Handlers for theme/language changes
   const handleThemeChange = async (newTheme: Theme) => {
-    // Cast to any to avoid type mismatch between types.ts Theme (system) and useProfile Theme (auto)
-    await updateTheme(newTheme as any);
+    // Convert 'system' to 'auto' for useProfile compatibility
+    const themeValue = newTheme === 'system' ? 'auto' : newTheme;
+    await updateTheme(themeValue as 'light' | 'dark' | 'auto');
   };
 
   const handleLanguageChange = async (newLanguage: Language) => {
@@ -241,7 +244,7 @@ export default function App() {
           return;
         }
       } catch (err) {
-        console.error('Failed to check meal limit:', err);
+        logger.error('Failed to check meal limit:', err);
         // In case of error, maybe allow it or show error? For now, allow to proceed to not block user on error.
       }
     }
@@ -255,7 +258,7 @@ export default function App() {
       // Trigger refresh for other pages since backend auto-saves the meal
       setRefreshTrigger(prev => prev + 1);
     } catch (error) {
-      console.error('[App] Backend upload failed:', error);
+      logger.error('Backend upload failed:', error);
     }
 
     // Clear the file input
@@ -289,14 +292,8 @@ export default function App() {
         lunchReminderTime: notifications.lunchReminderTime,
         dinnerReminderTime: notifications.dinnerReminderTime,
       });
-      console.log('[App] Notification settings updated:', {
-        notificationsEnabled: newValue,
-        breakfastReminderTime: notifications.breakfastReminderTime,
-        lunchReminderTime: notifications.lunchReminderTime,
-        dinnerReminderTime: notifications.dinnerReminderTime,
-      });
     } catch (error) {
-      console.error('[App] Failed to update notification settings:', error);
+      logger.error('Failed to update notification settings:', error);
       // Revert on error
       setNotifications(prev => ({ ...prev, reminders: !newValue }));
     }
@@ -314,9 +311,8 @@ export default function App() {
         lunchReminderTime: notifications.lunchReminderTime,
         dinnerReminderTime: notifications.dinnerReminderTime,
       });
-      console.log('[App] Breakfast reminder time updated:', { breakfastReminderTime: newTime });
     } catch (error) {
-      console.error('[App] Failed to update breakfast reminder time:', error);
+      logger.error('Failed to update breakfast reminder time:', error);
       // Revert on error
       setNotifications(prev => ({ ...prev, breakfastReminderTime: notifications.breakfastReminderTime }));
     }
@@ -334,9 +330,8 @@ export default function App() {
         lunchReminderTime: newTime,
         dinnerReminderTime: notifications.dinnerReminderTime,
       });
-      console.log('[App] Lunch reminder time updated:', { lunchReminderTime: newTime });
     } catch (error) {
-      console.error('[App] Failed to update lunch reminder time:', error);
+      logger.error('Failed to update lunch reminder time:', error);
       // Revert on error
       setNotifications(prev => ({ ...prev, lunchReminderTime: notifications.lunchReminderTime }));
     }
@@ -354,9 +349,8 @@ export default function App() {
         lunchReminderTime: notifications.lunchReminderTime,
         dinnerReminderTime: newTime,
       });
-      console.log('[App] Dinner reminder time updated:', { dinnerReminderTime: newTime });
     } catch (error) {
-      console.error('[App] Failed to update dinner reminder time:', error);
+      logger.error('Failed to update dinner reminder time:', error);
       // Revert on error
       setNotifications(prev => ({ ...prev, dinnerReminderTime: notifications.dinnerReminderTime }));
     }
@@ -372,9 +366,8 @@ export default function App() {
       await api.profile.updateSettings({
         hideRanking: newValue,
       });
-      console.log('[App] Privacy settings updated:', { hideRanking: newValue });
     } catch (error) {
-      console.error('[App] Failed to update privacy settings:', error);
+      logger.error('Failed to update privacy settings:', error);
       // Revert on error
       setPrivacy(prev => ({ ...prev, hideRanking: !newValue }));
     }
@@ -543,26 +536,14 @@ export default function App() {
             <div className="h-64 bg-cover bg-center relative" style={{ backgroundImage: 'url(https://picsum.photos/800/600?food)' }}>
               <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/90"></div>
               <div className="absolute bottom-4 left-4 flex items-end">
-                {user?.avatarUrl ? (
-                  <img
-                    src={user.avatarUrl}
-                    alt="Avatar"
-                    className="w-12 h-12 rounded-full border-2 border-white object-cover mr-4"
-                    style={{
-                      boxShadow: '0 4px 12px color-mix(in srgb, var(--foreground) 15%, transparent), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)'
-                    }}
-                  />
-                ) : (
-                  <div
-                    className="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold mr-4 overflow-hidden"
-                    style={{
-                      background: 'linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, black) 100%)',
-                      boxShadow: '0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)'
-                    }}
-                  >
-                    {user?.username?.charAt(0)?.toUpperCase() || '?'}
-                  </div>
-                )}
+                <UserAvatar
+                  src={user?.avatarUrl}
+                  username={user?.username}
+                  size="md"
+                  bordered
+                  borderColor="white"
+                  className="mr-4"
+                />
                 <div className="mb-2">
                   <h1 className="text-2xl font-bold text-white">
                     {profile?.displayName || user?.displayName || (isAuthenticated ? 'User' : (language === Language.ZH ? '访客' : 'Guest'))}
@@ -633,7 +614,7 @@ export default function App() {
               <div className="space-y-1">
                 <h3 className="text-xs text-muted-foreground ml-4 mb-2">Info</h3>
                 <div className={`${profileBgClass} rounded-xl overflow-hidden`}>
-                  <ListItem theme={theme} label="About 2.0" icon={<div className="w-5 h-5 rounded-full border border-gray-500 flex items-center justify-center text-[10px]">i</div>} />
+                  <ListItem theme={theme} label="About 2.0" icon={<div className="w-5 h-5 rounded-full border border-[var(--muted-foreground)]/30 flex items-center justify-center text-[10px]">i</div>} />
                   <ListItem theme={theme} label="Design System" icon={<Palette size={16} />} onClick={() => setCurrentView(AppView.DESIGN_SYSTEM)} />
                   <ListItem theme={theme} label="Share with Friends" icon={<Share2 size={16} />} />
                   <ListItem theme={theme} label="Rate App" icon={<Star size={16} />} />
@@ -644,7 +625,7 @@ export default function App() {
               {/* Logout Button at the bottom */}
               {isAuthenticated && (
                 <div className="pt-4 pb-12">
-                  <div className={`${profileBgClass} rounded-xl overflow-hidden border border-destructive/20`}>
+                  <div className={`${profileBgClass} rounded-xl overflow-hidden`}>
                     <ListItem
                       theme={theme}
                       label={language === Language.ZH ? '退出登录' : 'Logout'}
@@ -723,7 +704,7 @@ export default function App() {
                   {/* Breakfast Time Picker */}
                   <div className={`${profileBgClass} rounded-2xl overflow-hidden mb-4`}>
                     <div className="p-4">
-                      <div className={`text-sm font-semibold mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                      <div className={`text-sm font-semibold mb-3 ${styles.textTitle}`}>
                         {language === Language.ZH ? '早餐提醒' : 'Breakfast Reminder'}
                       </div>
                       <TimePicker
@@ -738,7 +719,7 @@ export default function App() {
                   {/* Lunch Time Picker */}
                   <div className={`${profileBgClass} rounded-2xl overflow-hidden mb-4`}>
                     <div className="p-4">
-                      <div className={`text-sm font-semibold mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                      <div className={`text-sm font-semibold mb-3 ${styles.textTitle}`}>
                         {language === Language.ZH ? '午餐提醒' : 'Lunch Reminder'}
                       </div>
                       <TimePicker
@@ -753,7 +734,7 @@ export default function App() {
                   {/* Dinner Time Picker */}
                   <div className={`${profileBgClass} rounded-2xl overflow-hidden mb-8`}>
                     <div className="p-4">
-                      <div className={`text-sm font-semibold mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                      <div className={`text-sm font-semibold mb-3 ${styles.textTitle}`}>
                         {language === Language.ZH ? '晚餐提醒' : 'Dinner Reminder'}
                       </div>
                       <TimePicker
@@ -782,7 +763,7 @@ export default function App() {
             <div className="absolute bottom-12 left-6">
               <button
                 onClick={navigateToProfile}
-                className={`w-12 h-12 rounded-full ${theme === 'dark' ? 'bg-[#2C2C2E] text-white' : 'bg-white text-black'} shadow-lg flex items-center justify-center`}
+                className={`w-12 h-12 rounded-full ${styles.bgCard} ${styles.textTitle} shadow-lg flex items-center justify-center`}
               >
                 <ArrowLeft size={24} />
               </button>
@@ -811,7 +792,7 @@ export default function App() {
             <div className="absolute bottom-12 left-6">
               <button
                 onClick={navigateToProfile}
-                className={`w-12 h-12 rounded-full ${theme === 'dark' ? 'bg-[#2C2C2E] text-white' : 'bg-white text-black'} shadow-lg flex items-center justify-center`}
+                className={`w-12 h-12 rounded-full ${styles.bgCard} ${styles.textTitle} shadow-lg flex items-center justify-center`}
               >
                 <ArrowLeft size={24} />
               </button>
@@ -980,13 +961,13 @@ export default function App() {
         {/* Top Bar */}
         <div className="flex justify-between items-center mb-6">
           <button onClick={navigateBack} className={`w-10 h-10 rounded-full flex items-center justify-center ${theme === 'dark' ? 'bg-white/10' : 'bg-black/5'}`}>
-            <ArrowLeft size={24} className={theme === 'dark' ? 'text-white' : 'text-black'} />
+            <ArrowLeft size={24} className={styles.textTitle} />
           </button>
           <div className="flex space-x-1">
-            <div className={`w-2 h-2 rounded-full ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'}`}></div>
-            <div className={`w-2 h-2 rounded-full ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'}`}></div>
-            <div className={`w-2 h-2 rounded-full ${theme === 'dark' ? 'bg-gray-600' : 'bg-gray-300'}`}></div>
-            <div className={`w-2 h-2 rounded-full ${theme === 'dark' ? 'bg-white' : 'bg-black'}`}></div>
+            <div className={`w-2 h-2 rounded-full ${styles.textTertiary}`}></div>
+            <div className={`w-2 h-2 rounded-full ${styles.textTertiary}`}></div>
+            <div className={`w-2 h-2 rounded-full ${styles.textTertiary}`}></div>
+            <div className={`w-2 h-2 rounded-full ${styles.textTitle}`}></div>
             <div className="w-2 h-2 rounded-full bg-green-500"></div>
           </div>
         </div>
@@ -1017,7 +998,7 @@ export default function App() {
             <p className={`text-[10px] leading-tight z-10 ${theme === 'dark' ? 'text-muted-foreground' : 'text-foreground'}`}>{t.feat_3_desc}</p>
           </div>
           {/* Card 4 */}
-          <div className="bg-gradient-to-br from-gray-500/30 to-gray-700/20 p-4 rounded-xl border border-gray-500/30 flex flex-col h-32 relative overflow-hidden">
+          <div className="bg-gradient-to-br from-gray-500/30 to-gray-700/20 p-4 rounded-xl border border-transparent flex flex-col h-32 relative overflow-hidden">
             <div className="absolute top-2 right-2 opacity-50"><BarChart3 size={32} color="gray" /></div>
             <div className={`font-bold mb-2 z-10 ${theme === 'dark' ? 'text-muted-foreground' : 'text-gray-700'}`}>{t.feat_4_title}</div>
             <p className={`text-[10px] leading-tight z-10 ${theme === 'dark' ? 'text-muted-foreground' : 'text-foreground'}`}>{t.feat_4_desc}</p>
@@ -1029,9 +1010,9 @@ export default function App() {
           {/* Monthly */}
           <div
             onClick={() => setSelectedPlan('monthly')}
-            className={`rounded-2xl p-4 border transition-all cursor-pointer ${selectedPlan === 'monthly'
-              ? `border-[#E0CEB5] ${theme === 'dark' ? 'bg-[#E0CEB5]/10' : 'bg-[#E0CEB5]/20'}`
-              : `${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'} bg-transparent`
+            className={`rounded-2xl p-4 transition-all cursor-pointer ${selectedPlan === 'monthly'
+              ? `border border-[#E0CEB5] ${theme === 'dark' ? 'bg-[#E0CEB5]/10' : 'bg-[#E0CEB5]/20'}`
+              : `border border-transparent ${theme === 'dark' ? 'bg-white/5' : 'bg-black/5'}`
               }`}
           >
             <div className={`text-sm mb-2 ${selectedPlan === 'monthly' ? (theme === 'dark' ? 'text-[#E0CEB5]' : 'text-[#B8860B]') : (theme === 'dark' ? 'text-[#E0CEB5]' : 'text-foreground')}`}>{t.subscribe_monthly}</div>
@@ -1043,7 +1024,7 @@ export default function App() {
             onClick={() => setSelectedPlan('yearly')}
             className={`rounded-2xl p-4 border transition-all cursor-pointer ${selectedPlan === 'yearly'
               ? `border-[#E0CEB5] ${theme === 'dark' ? 'bg-[#E0CEB5]/10' : 'bg-[#E0CEB5]/20'}`
-              : `${theme === 'dark' ? 'border-gray-700' : 'border-gray-300'} bg-transparent`
+              : `border-transparent ${theme === 'dark' ? 'bg-white/5' : 'bg-black/5'}`
               }`}
           >
             <div className={`text-sm mb-2 ${selectedPlan === 'yearly' ? (theme === 'dark' ? 'text-[#E0CEB5]' : 'text-[#B8860B]') : (theme === 'dark' ? 'text-[#E0CEB5]' : 'text-foreground')}`}>{t.subscribe_yearly}</div>
@@ -1114,10 +1095,10 @@ export default function App() {
           <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
             <span className="text-5xl">🍽️</span>
           </div>
-          <h1 className={`text-2xl font-bold mb-3 ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+          <h1 className={`text-2xl font-bold mb-3 ${styles.textTitle}`}>
             {language === Language.ZH ? '欢迎使用胃之书' : 'Welcome to Bellybook'}
           </h1>
-          <p className={`text-sm mb-8 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'}`}>
+          <p className={`text-sm mb-8 ${styles.textSecondary}`}>
             {language === Language.ZH
               ? '登录以保存您的美食记录，开启美食探索之旅'
               : 'Login to save your food records and start your culinary journey'}
@@ -1145,7 +1126,8 @@ export default function App() {
   }
 
   return (
-    <div className={`min-h-screen relative ${mainBgClass}`}>
+    <ErrorBoundary>
+      <div className={`min-h-screen relative ${mainBgClass}`}>
       {/* Offline Status Banner */}
       <OfflineBanner isOffline={!isOnline} />
 
@@ -1154,22 +1136,17 @@ export default function App() {
 
       {/* Top Bar for Main Tabs */}
       <div className="fixed top-0 left-0 right-0 h-[50px] z-40 flex items-center justify-between px-4 mt-safe-top bg-gradient-to-b from-background/80 to-transparent">
-        {/* Top Left: User Avatar (Profile) - Replaces Tomato for Passport feel */}
-        <div onClick={navigateToProfile} className="w-12 h-12 rounded-full cursor-pointer overflow-hidden relative"
-             style={{
-               boxShadow: '0 4px 12px color-mix(in srgb, var(--foreground) 15%, transparent), inset 0 1px 0 color-mix(in srgb, var(--background) 80%, white), inset 0 -1px 0 color-mix(in srgb, var(--foreground) 5%, black)'
-             }}>
-          {user?.avatarUrl ? (
-            <img src={user.avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-white text-lg font-bold"
-                 style={{
-                   background: 'linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, black) 100%)'
-                 }}>
-              {user?.username?.charAt(0)?.toUpperCase() || '?'}
-            </div>
-          )}
-        </div>
+        {/* Top Left: User Avatar (Profile) */}
+        <UserAvatar
+          src={user?.avatarUrl}
+          username={user?.username}
+          size="md"
+          onClick={navigateToProfile}
+          className="cursor-pointer"
+          style={{
+            boxShadow: '0 4px 12px color-mix(in srgb, var(--foreground) 15%, transparent), inset 0 1px 0 color-mix(in srgb, var(--background) 80%, white), inset 0 -1px 0 color-mix(in srgb, var(--foreground) 5%, black)'
+          }}
+        />
 
         {/* Title changes based on tab */}
         <h1 className="text-lg font-bold tracking-wide">
@@ -1224,7 +1201,6 @@ export default function App() {
                     refreshTrigger={refreshTrigger}
                     userId={userId}
                     onCuisineClick={(cuisine) => {
-                      console.log('App: Navigating to CuisineDetail', cuisine);
                       setSelectedCuisine(cuisine);
                       setCurrentView(AppView.PASSPORT_CUISINE_DETAIL);
                     }}
@@ -1280,6 +1256,7 @@ export default function App() {
         isOpen={showConflictModal}
         onClose={() => setShowConflictModal(false)}
       />
-    </div>
+      </div>
+    </ErrorBoundary>
   );
 }

@@ -6,6 +6,9 @@
 
 import { apiClient } from './client';
 import type { ApiResponse } from './types';
+import { createModuleLogger } from '@/utils/logger';
+
+const logger = createModuleLogger('RankingAPI');
 
 /**
  * Ranking period type
@@ -186,9 +189,9 @@ export const ranking = {
     if (cuisineName) {
       params.cuisineName = cuisineName;
     }
-    console.log('[ranking.getCuisineMasters] Fetching from /ranking/cuisine-masters with params:', params);
+    logger.debug('Fetching from /ranking/cuisine-masters with params:', params);
     const result = await apiClient.get<CuisineMastersResponse>('/ranking/cuisine-masters', { params });
-    console.log('[ranking.getCuisineMasters] Result:', result);
+    logger.debug('Result:', result);
     return result;
   },
 
@@ -243,12 +246,14 @@ export const ranking = {
    * Get all users dishes list
    * Shows all dishes grouped by user
    * @param period Time period (default: WEEKLY)
+   * @param limit Maximum number of users to return (default: 1000 for all users)
    */
   getAllUsersDishes: async (
-    period: RankingPeriod = 'WEEKLY'
+    period: RankingPeriod = 'WEEKLY',
+    limit: number = 1000
   ): Promise<AllUsersDishesResponse> => {
     return apiClient.get<AllUsersDishesResponse>('/ranking/all-users-dishes', {
-      params: { period }
+      params: { period, limit }
     });
   },
 

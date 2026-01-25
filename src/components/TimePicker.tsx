@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useThemeStyles } from '@/hooks/useThemeStyles';
 import { Language, Theme } from '@/types';
 
 interface TimePickerProps {
@@ -14,10 +15,22 @@ interface TimePickerProps {
 }
 
 export function TimePicker({ value, onChange, language, theme }: TimePickerProps) {
+  const styles = useThemeStyles(theme);
   const [isOpen, setIsOpen] = useState(false);
   const [hours, setHours] = useState(() => parseInt(value.split(':')[0], 10));
   const [minutes, setMinutes] = useState(() => parseInt(value.split(':')[1], 10));
   const pickerRef = useRef<HTMLDivElement>(null);
+
+  // Helper to get background color based on state and theme
+  const getButtonBg = () => {
+    if (isOpen) return ''; // Handled by gradient classes
+    return styles.bgCard;
+  };
+
+  const getButtonBorder = () => {
+    if (isOpen) return ''; // Handled by gradient classes
+    return styles.border;
+  };
 
   // Generate hours (0-23) and minutes (0-59) arrays
   const hoursArray = Array.from({ length: 24 }, (_, i) => i);
@@ -81,7 +94,7 @@ export function TimePicker({ value, onChange, language, theme }: TimePickerProps
               : 'bg-gradient-to-r from-amber-400 to-orange-400 border-amber-300 shadow-lg shadow-amber-400/30'
             : theme === 'dark'
               ? 'bg-[#2C2C2E] border-white/10 hover:border-amber-500/50'
-              : 'bg-white border-gray-200 hover:border-amber-300'
+              : 'bg-white border-[var(--border)] hover:border-amber-300'
           }
         `}
       >
@@ -99,10 +112,10 @@ export function TimePicker({ value, onChange, language, theme }: TimePickerProps
             </svg>
           </div>
           <div className="text-left">
-            <div className={`text-xs ${isOpen ? 'text-white/80' : 'text-muted-foreground'}`}>
+            <div className={`text-xs ${isOpen ? 'text-white/80' : styles.textTertiary}`}>
               {language === Language.ZH ? '提醒时间' : 'Reminder Time'}
             </div>
-            <div className={`text-2xl font-bold ${isOpen ? 'text-white' : ''}`}>
+            <div className={`text-2xl font-bold ${isOpen ? 'text-white' : styles.textTitle}`}>
               {formatDisplayTime(hours, minutes)}
             </div>
           </div>
@@ -124,7 +137,7 @@ export function TimePicker({ value, onChange, language, theme }: TimePickerProps
           backdrop-blur-xl border-2
           z-50 animate-in fade-in slide-in-from-top-2 duration-300
           ${theme === 'dark'
-            ? 'bg-[#1C1C1E]/95 border-amber-500/30'
+            ? styles.bgCard + '/95 border-amber-500/30'
             : 'bg-white/95 border-amber-200'
           }
           shadow-2xl
@@ -220,9 +233,7 @@ export function TimePicker({ value, onChange, language, theme }: TimePickerProps
             }`}>
               {language === Language.ZH ? '已选择' : 'Selected'}
             </div>
-            <div className={`text-3xl font-bold ${
-              theme === 'dark' ? 'text-white' : 'text-gray-900'
-            }`}>
+            <div className={`text-3xl font-bold ${styles.textTitle}`}>
               {formatDisplayTime(hours, minutes)}
             </div>
           </div>

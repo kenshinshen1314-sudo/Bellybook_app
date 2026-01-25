@@ -1,13 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { meals, type Meal } from '@/db';
-import { generateId } from '@/db/schema';
+import { generateId, type MealAnalysis } from '@/db/schema';
 import { generateThumbnail } from '@/utils/imageUtils';
+import { logger } from '@/utils/logger';
 
 interface UseMealsResult {
   meals: Meal[];
   isLoading: boolean;
   error: string | null;
-  saveMeal: (imageUrl: string, analysis: any, mealType?: string, notes?: string) => Promise<string>;
+  saveMeal: (imageUrl: string, analysis: MealAnalysis, mealType?: string, notes?: string) => Promise<string>;
   updateMeal: (meal: Meal) => Promise<void>;
   deleteMeal: (mealId: string) => Promise<void>;
   getMealById: (mealId: string) => Promise<Meal | undefined>;
@@ -30,13 +31,13 @@ export function useMeals(userId: string = DEFAULT_USER_ID): UseMealsResult {
    * Load all meals from IndexedDB
    */
   const loadMeals = useCallback(async () => {
-    console.log('[useMeals] loadMeals called with userId:', userId);
+    logger.debug('[useMeals]', 'loadMeals called with userId:', userId);
     setIsLoading(true);
     setError(null);
 
     try {
       const allMeals = await meals.getAll(userId);
-      console.log('[useMeals] Loaded meals:', allMeals.length, 'for userId:', userId);
+      logger.debug('[useMeals]', `Loaded meals: ${allMeals.length} for userId: ${userId}`);
       // Sort by createdAt descending (newest first)
       const sortedMeals = allMeals.sort((a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -45,7 +46,7 @@ export function useMeals(userId: string = DEFAULT_USER_ID): UseMealsResult {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load meals';
       setError(errorMessage);
-      console.error('[useMeals] Error loading meals:', err);
+      logger.error('[useMeals]', 'Error loading meals:', err);
     } finally {
       setIsLoading(false);
     }
@@ -56,8 +57,8 @@ export function useMeals(userId: string = DEFAULT_USER_ID): UseMealsResult {
    */
   const saveMeal = useCallback(async (
     imageUrl: string,
-    analysis: any,
-    mealType?: string,
+    analysis: MealAnalysis,
+    mealType?: 'breakfast' | 'lunch' | 'dinner' | 'snack',
     notes?: string
   ): Promise<string> => {
     setError(null);
@@ -69,9 +70,9 @@ export function useMeals(userId: string = DEFAULT_USER_ID): UseMealsResult {
         // Convert base64 to Blob for thumbnail generation
         const imageBlob = await fetch(imageUrl).then(r => r.blob());
         thumbnailUrl = await generateThumbnail(imageBlob, 200, 200, 0.7);
-        console.log('[useMeals] Thumbnail generated successfully, length:', thumbnailUrl?.length);
+        logger.debug('[useMeals]', `Thumbnail generated successfully, length: ${thumbnailUrl?.length}`);
       } catch (thumbError) {
-        console.warn('[useMeals] Failed to generate thumbnail, using original:', thumbError);
+        logger.warn('[useMeals]', 'Failed to generate thumbnail, using original:', thumbError);
         // Use original URL as fallback
       }
 
@@ -100,33 +101,24 @@ export function useMeals(userId: string = DEFAULT_USER_ID): UseMealsResult {
           historicalBackground: analysis.historicalBackground,
           analyzedAt: new Date().toISOString(),
         },
-        mealType: mealType as any,
+        mealType: mealType,
         notes,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         isSynced: false,
       };
 
-      // Debug log before saving
-      console.log('[useMeals] Saving meal with images:', {
-        id: newMeal.id,
-        imageUrlPrefix: imageUrl?.substring(0, 50),
-        thumbnailUrlPrefix: thumbnailUrl?.substring(0, 50),
-        imageUrlLength: imageUrl?.length,
-        thumbnailUrlLength: thumbnailUrl?.length,
-      });
-
       const mealId = await meals.add(newMeal);
 
       // Add to local state
       setMealsList(prev => [newMeal, ...prev]);
 
-      console.log('[useMeals] Meal saved:', mealId);
+      logger.debug('[useMeals]', `Meal saved: ${mealId}`);
       return mealId;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save meal';
       setError(errorMessage);
-      console.error('[useMeals] Error saving meal:', err);
+      logger.error('[useMeals]', 'Error saving meal:', err);
       throw err;
     }
   }, [userId]);
@@ -150,11 +142,11 @@ export function useMeals(userId: string = DEFAULT_USER_ID): UseMealsResult {
         prev.map(m => m.id === meal.id ? updatedMeal : m)
       );
 
-      console.log('[useMeals] Meal updated:', meal.id);
+      logger.debug('[useMeals]', `Meal updated: ${meal.id}`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update meal';
       setError(errorMessage);
-      console.error('[useMeals] Error updating meal:', err);
+      logger.error('[useMeals]', 'Error updating meal:', err);
       throw err;
     }
   }, []);
@@ -171,11 +163,11 @@ export function useMeals(userId: string = DEFAULT_USER_ID): UseMealsResult {
       // Remove from local state
       setMealsList(prev => prev.filter(m => m.id !== mealId));
 
-      console.log('[useMeals] Meal deleted:', mealId);
+      logger.debug('[useMeals]', `Meal deleted: ${mealId}`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to delete meal';
       setError(errorMessage);
-      console.error('[useMeals] Error deleting meal:', err);
+      logger.error('[useMeals]', 'Error deleting meal:', err);
       throw err;
     }
   }, []);
@@ -228,8 +220,8 @@ export function useMeals(userId: string = DEFAULT_USER_ID): UseMealsResult {
 export async function saveMeal(
   userId: string,
   imageUrl: string,
-  analysis: any,
-  mealType?: string,
+  analysis: MealAnalysis,
+  mealType?: 'breakfast' | 'lunch' | 'dinner' | 'snack',
   notes?: string
 ): Promise<string> {
   // Generate thumbnail for list view
@@ -238,9 +230,9 @@ export async function saveMeal(
     // Convert base64 to Blob for thumbnail generation
     const imageBlob = await fetch(imageUrl).then(r => r.blob());
     thumbnailUrl = await generateThumbnail(imageBlob, 200, 200, 0.7);
-    console.log('[saveMeal] Thumbnail generated successfully, length:', thumbnailUrl?.length);
+    logger.debug('[saveMeal]', `Thumbnail generated successfully, length: ${thumbnailUrl?.length}`);
   } catch (thumbError) {
-    console.warn('[saveMeal] Failed to generate thumbnail, using original:', thumbError);
+    logger.warn('[saveMeal]', 'Failed to generate thumbnail, using original:', thumbError);
   }
 
   const newMeal: Meal = {
@@ -268,7 +260,7 @@ export async function saveMeal(
       historicalBackground: analysis.historicalBackground,
       analyzedAt: new Date().toISOString(),
     },
-    mealType: mealType as any,
+    mealType: mealType,
     notes,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),

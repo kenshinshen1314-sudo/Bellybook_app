@@ -8,6 +8,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { getConflictResolver, destroyConflictResolver } from '@/conflict/resolver';
 import type { Conflict, ConflictResolution, ConflictStrategy } from '@/conflict/types';
 import type { MealConflictInfo, ProfileConflictInfo, SettingsConflictInfo } from '@/conflict/types';
+import { logger } from '@/utils/logger';
 
 export interface UseConflictsReturn {
   /** List of all conflicts */
@@ -84,7 +85,7 @@ export function useConflicts(): UseConflictsReturn {
         resolver.autoResolveAll();
         break;
       default:
-        console.warn('[useConflicts] Cannot auto-resolve with MANUAL strategy');
+        logger.warn('[useConflicts]', 'Cannot auto-resolve with MANUAL strategy');
     }
   }, [resolver]);
 

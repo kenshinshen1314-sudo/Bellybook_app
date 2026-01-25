@@ -1,5 +1,6 @@
 import React, { useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useThemeStyles } from '../hooks/useThemeStyles';
 import { Language, Theme } from '../types';
 
 interface StripCalendarProps {
@@ -16,11 +17,7 @@ export const StripCalendar: React.FC<StripCalendarProps> = ({
     theme,
 }) => {
     const scrollRef = useRef<HTMLDivElement>(null);
-
-    // Text colors and background styles
-    const textPrimary = theme === 'dark' ? 'text-white' : 'text-gray-900';
-    const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-400';
-    const textSelected = theme === 'dark' ? 'text-white' : 'text-black'; // Bold text for selected
+    const styles = useThemeStyles(theme);
 
     // Background color for selected date
     const selectedBgColor = theme === 'dark'
@@ -76,7 +73,7 @@ export const StripCalendar: React.FC<StripCalendarProps> = ({
                             onClick={() => onDateSelect(date)}
                         >
                             {/* Day Name (e.g. Mon) */}
-                            <span className={`text-xs ${isSelected ? 'text-orange-500 font-bold' : textSecondary} font-medium mb-1`}>
+                            <span className={`text-xs ${isSelected ? 'text-orange-500 font-bold' : styles.textSecondary} font-medium mb-1`}>
                                 {getDayText(date)}
                             </span>
 
@@ -91,7 +88,7 @@ export const StripCalendar: React.FC<StripCalendarProps> = ({
                                 whileHover={{ scale: 1.05 }}
                                 whileTap={{ scale: 0.95 }}
                             >
-                                <span className={`text-lg font-bold ${isSelected ? 'text-white' : textSecondary}`}>
+                                <span className={`text-lg font-bold ${isSelected ? 'text-white' : styles.textSecondary}`}>
                                     {date.getDate()}
                                 </span>
                             </motion.div>

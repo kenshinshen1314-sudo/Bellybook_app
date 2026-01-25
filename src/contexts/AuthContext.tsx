@@ -7,6 +7,9 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import * as authService from '@/services/authService';
 import type { AuthSession, RegisterData, LoginData } from '@/services/authService';
 import { users, meals, dailyNutrition, cuisineUnlocks } from '@/db';
+import { createModuleLogger } from '@/utils/logger';
+
+const logger = createModuleLogger('Auth');
 
 // ============================================================================
 // Types
@@ -56,11 +59,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       try {
         const session = authService.getCurrentUser();
         if (session) {
-          console.log('[Auth] User already logged in:', session.username);
+          logger.info('User already logged in:', session.username);
           setUser(session);
         }
       } catch (error) {
-        console.error('[Auth] Failed to check authentication:', error);
+        logger.error('Failed to check authentication:', error);
       } finally {
         setIsLoading(false);
       }
@@ -70,164 +73,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   /**
-   * Register a new user
-   */
-  const register = useCallback(async (data: RegisterData): Promise<AuthSession> => {
-    setIsLoading(true);
-    try {
-      const session = await authService.register(data);
-      setUser(session);
-      console.log('[Auth] User registered:', session.username);
-
-      // Create user profile in IndexedDB
-      await users.set(session.userId, {
-        profile: {
-          id: session.userId,
-          username: session.username,
-          displayName: session.displayName,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        settings: {
-          id: session.userId,
-          language: 'zh',
-          theme: 'light',
-          notificationsEnabled: true,
-        },
-      });
-
-      console.log('[Auth] User profile created in IndexedDB');
-
-      // Auto-migrate offline data from 'current-user' to the new user
-      await migrateOfflineData(session.userId);
-
-      return session;
-    } catch (error) {
-      console.error('[Auth] Registration failed:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  /**
-   * Login with username and password
-   */
-  const login = useCallback(async (data: LoginData): Promise<AuthSession> => {
-    setIsLoading(true);
-    try {
-      const session = await authService.login(data);
-      setUser(session);
-      console.log('[Auth] User logged in:', session.username);
-
-      // Ensure user profile exists in IndexedDB
-      const existingProfile = await users.get(session.userId);
-      if (!existingProfile) {
-        await users.set(session.userId, {
-          profile: {
-            id: session.userId,
-            username: session.username,
-            displayName: session.displayName,
-            createdAt: new Date().toISOString(),
-            updatedAt: new Date().toISOString(),
-          },
-          settings: {
-            id: session.userId,
-            language: 'zh',
-            theme: 'light',
-            notificationsEnabled: true,
-          },
-        });
-        console.log('[Auth] User profile created in IndexedDB');
-      }
-
-      // Auto-migrate offline data from 'current-user' to the logged-in user
-      await migrateOfflineData(session.userId);
-
-      return session;
-    } catch (error) {
-      console.error('[Auth] Login failed:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  /**
-   * Logout current user
-   */
-  const logout = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      await authService.logout();
-      setUser(null);
-      console.log('[Auth] User logged out');
-    } catch (error) {
-      console.error('[Auth] Logout failed:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  /**
-   * Update user profile
-   */
-  const updateProfile = useCallback(async (displayName: string) => {
-    if (!user) {
-      throw new Error('Not authenticated');
-    }
-
-    setIsLoading(true);
-    try {
-      await authService.updateProfile(user.userId, { displayName });
-
-      // Update IndexedDB profile
-      const existingData = await users.get(user.userId);
-      if (existingData) {
-        await users.set(user.userId, {
-          ...existingData,
-          profile: {
-            ...existingData.profile,
-            displayName,
-            updatedAt: new Date().toISOString(),
-          },
-        });
-      }
-
-      // Update session state
-      setUser({
-        ...user,
-        displayName,
-      });
-
-      console.log('[Auth] Profile updated');
-    } catch (error) {
-      console.error('[Auth] Profile update failed:', error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user]);
-
-  /**
    * Migrate offline data (from 'current-user' to the logged-in user)
+   * This function is defined before register/login to avoid circular dependencies
    */
   const migrateOfflineData = useCallback(async (userId: string) => {
     const OFFLINE_USER_ID = 'current-user';
 
     try {
-      console.log('[Auth] Starting data migration from', OFFLINE_USER_ID, 'to', userId);
+      logger.info('Starting data migration from', OFFLINE_USER_ID, 'to', userId);
 
       // Check if there's data to migrate
       const offlineMeals = await meals.getAll(OFFLINE_USER_ID);
 
       if (offlineMeals.length === 0) {
-        console.log('[Auth] No offline data to migrate');
+        logger.info('No offline data to migrate');
         return;
       }
 
-      console.log('[Auth] Migrating', offlineMeals.length, 'meals');
+      logger.debug('Migrating', offlineMeals.length, 'meals');
 
       // Migrate each meal
       for (const meal of offlineMeals) {
@@ -268,12 +131,153 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
       await cuisineTx.done;
 
-      console.log('[Auth] Data migration completed');
+      logger.info('Data migration completed');
     } catch (error) {
-      console.error('[Auth] Data migration failed:', error);
+      logger.error('Data migration failed:', error);
       throw error;
     }
   }, []);
+
+  /**
+   * Register a new user
+   */
+  const register = useCallback(async (data: RegisterData): Promise<AuthSession> => {
+    setIsLoading(true);
+    try {
+      const session = await authService.register(data);
+      setUser(session);
+      logger.info('User registered:', session.username);
+
+      // Create user profile in IndexedDB
+      await users.set(session.userId, {
+        profile: {
+          id: session.userId,
+          username: session.username,
+          displayName: session.displayName,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        settings: {
+          id: session.userId,
+          language: 'zh',
+          theme: 'light',
+          notificationsEnabled: true,
+        },
+      });
+
+      logger.debug('User profile created in IndexedDB');
+
+      // Auto-migrate offline data from 'current-user' to the new user
+      await migrateOfflineData(session.userId);
+
+      return session;
+    } catch (error) {
+      logger.error('Registration failed:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [migrateOfflineData]);
+
+  /**
+   * Login with username and password
+   */
+  const login = useCallback(async (data: LoginData): Promise<AuthSession> => {
+    setIsLoading(true);
+    try {
+      const session = await authService.login(data);
+      setUser(session);
+      logger.info('User logged in:', session.username);
+
+      // Ensure user profile exists in IndexedDB
+      const existingProfile = await users.get(session.userId);
+      if (!existingProfile) {
+        await users.set(session.userId, {
+          profile: {
+            id: session.userId,
+            username: session.username,
+            displayName: session.displayName,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          },
+          settings: {
+            id: session.userId,
+            language: 'zh',
+            theme: 'light',
+            notificationsEnabled: true,
+          },
+        });
+        logger.debug('User profile created in IndexedDB');
+      }
+
+      // Auto-migrate offline data from 'current-user' to the logged-in user
+      await migrateOfflineData(session.userId);
+
+      return session;
+    } catch (error) {
+      logger.error('Login failed:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [migrateOfflineData]);
+
+  /**
+   * Logout current user
+   */
+  const logout = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      await authService.logout();
+      setUser(null);
+      logger.info('User logged out');
+    } catch (error) {
+      logger.error('Logout failed:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  /**
+   * Update user profile
+   */
+  const updateProfile = useCallback(async (displayName: string) => {
+    if (!user) {
+      throw new Error('Not authenticated');
+    }
+
+    setIsLoading(true);
+    try {
+      await authService.updateProfile(user.userId, { displayName });
+
+      // Update IndexedDB profile
+      const existingData = await users.get(user.userId);
+      if (existingData) {
+        await users.set(user.userId, {
+          ...existingData,
+          profile: {
+            ...existingData.profile,
+            displayName,
+            updatedAt: new Date().toISOString(),
+          },
+        });
+      }
+
+      // Update session state
+      setUser({
+        ...user,
+        displayName,
+      });
+
+      logger.info('Profile updated');
+    } catch (error) {
+      logger.error('Profile update failed:', error);
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user]);
 
   // Context value
   const value: AuthContextValue = {

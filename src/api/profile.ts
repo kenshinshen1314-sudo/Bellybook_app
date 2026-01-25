@@ -12,6 +12,9 @@ import type {
   UpdateProfileDto,
   UpdateSettingsDto,
 } from './types';
+import { createModuleLogger } from '@/utils/logger';
+
+const logger = createModuleLogger('ProfileAPI');
 
 /**
  * Authentication endpoints
@@ -126,9 +129,9 @@ export const profile = {
    * Update user profile
    */
   update: async (data: UpdateProfileDto): Promise<ApiResponse<any>> => {
-    console.log('[profile.update] Calling PUT /users/profile with data:', data);
+    logger.debug('Calling PUT /users/profile with data:', data);
     const result = await apiClient.put<ApiResponse<any>>('/users/profile', data);
-    console.log('[profile.update] Response:', result);
+    logger.debug('Response:', result);
     return result;
   },
 

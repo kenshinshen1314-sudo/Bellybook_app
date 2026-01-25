@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { users, type UserProfile, type UserSettings } from '@/db';
+import { logger } from '@/utils/logger';
 
 interface UseProfileResult {
   profile: UserProfile | null;
@@ -69,7 +70,7 @@ export function useProfile(userId: string = DEFAULT_USER_ID): UseProfileResult {
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to load profile';
       setError(errorMessage);
-      console.error('[useProfile] Error loading user data:', err);
+      logger.error('[useProfile]', 'Error loading user data:', err);
     } finally {
       setIsLoading(false);
     }
@@ -97,11 +98,11 @@ export function useProfile(userId: string = DEFAULT_USER_ID): UseProfileResult {
       await users.set(userId, { profile: updatedProfile, settings: currentSettings });
       setProfile(updatedProfile);
 
-      console.log('[useProfile] Profile saved:', updatedProfile);
+      logger.debug('[useProfile]', 'Profile saved:', updatedProfile);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save profile';
       setError(errorMessage);
-      console.error('[useProfile] Error saving profile:', err);
+      logger.error('[useProfile]', 'Error saving profile:', err);
       throw err;
     }
   }, [userId, settings]);
@@ -131,11 +132,11 @@ export function useProfile(userId: string = DEFAULT_USER_ID): UseProfileResult {
         document.documentElement.classList.remove('dark');
       }
 
-      console.log('[useProfile] Settings saved:', newSettings);
+      logger.debug('[useProfile]', 'Settings saved:', newSettings);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to save settings';
       setError(errorMessage);
-      console.error('[useProfile] Error saving settings:', err);
+      logger.error('[useProfile]', 'Error saving settings:', err);
       throw err;
     }
   }, [userId, profile]);

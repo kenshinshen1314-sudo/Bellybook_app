@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Share2, Edit3, Trash2, Check } from 'lucide-react';
+import { X, Share2, Edit3, Trash2, Check, Loader2 } from 'lucide-react';
 import { Language, Theme, TEXT } from '../types';
+import { useThemeStyles } from '../hooks/useThemeStyles';
 import type { Meal } from '../db';
 import { translateCuisine, translateIngredient, translateDishName, translateDescription } from '../utils/translationUtils';
+import { logger } from '@/utils/logger';
 
 interface MealDetailModalProps {
     meal: Meal | null;
@@ -28,7 +30,19 @@ function normalizeIngredient(ing: string | { name: string }): { name: string } {
 // Generate poetic description based on food and time
 function generatePoeticDescription(meal: Meal, lang: Language): string {
     const hour = new Date(meal.createdAt).getHours();
-    const foodName = meal.analysis.foodName;
+    // Get dish name(s) - supports both old and new data structures
+    // When multiple dishes are detected, concatenate all dish names
+    const getDishNames = (): string => {
+        const dishes = meal.analysis.dishes;
+        if (dishes && dishes.length > 0) {
+            const dishNames = dishes
+                .map(d => d.foodName || d.name || '')
+                .filter(name => name.trim() !== '');
+            return dishNames.join('、');
+        }
+        return meal.analysis.foodName || '';
+    };
+    const foodName = getDishNames();
     // Handle both string[] and object[] formats for ingredients
     const ingredients = meal.analysis.ingredients?.map(i => {
         const ing = normalizeIngredient(i);
@@ -97,6 +111,19 @@ function getIngredientIcon(name: string): string {
     return '🍽️';
 }
 
+// Helper function to get dish name(s) - supports both old and new data structures
+// When multiple dishes are detected, concatenates all dish names
+function getDishNames(meal: Meal): string {
+    const dishes = meal.analysis.dishes;
+    if (dishes && dishes.length > 0) {
+        const dishNames = dishes
+            .map(d => d.foodName || d.name || '')
+            .filter(name => name.trim() !== '');
+        return dishNames.join('、');
+    }
+    return meal.analysis.foodName || '';
+}
+
 export const MealDetailModal: React.FC<MealDetailModalProps> = ({
     meal,
     isOpen,
@@ -107,6 +134,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
     lang,
     theme,
 }) => {
+    const styles = useThemeStyles(theme);
     const [showNutritionCard, setShowNutritionCard] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -146,11 +174,6 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
 
     // Use dishSuggestion from backend directly
     const nutritionCommentary = localMeal.analysis.dishSuggestion || '';
-
-    const bgColor = theme === 'dark' ? 'bg-[#1C1C1E]' : 'bg-white';
-    const textColor = theme === 'dark' ? 'text-white' : 'text-gray-900';
-    const secondaryText = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
-    const cardBg = theme === 'dark' ? 'bg-[#2C2C2E]' : 'bg-gray-100';
     const inputBg = theme === 'dark' ? 'bg-[#3C3C3E]' : 'bg-gray-50';
 
     const handleDeleteClick = () => {
@@ -195,7 +218,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
             await onUpdate(updatedMeal);
             setIsEditing(false);
         } catch (error) {
-            console.error('Failed to update localMeal:', error);
+            logger.error('Failed to update meal:', error);
         } finally {
             setIsSaving(false);
         }
@@ -220,7 +243,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                         animate={{ y: 0 }}
                         exit={{ y: '100%' }}
                         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-                        className={`relative w-full max-h-[90vh] ${bgColor} rounded-t-3xl overflow-hidden`}
+                        className={`relative w-full max-h-[90vh] ${styles.bgCard} rounded-t-3xl overflow-hidden`}
                         onClick={(e) => e.stopPropagation()}
                     >
                         {/* Close Button */}
@@ -228,7 +251,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                             onClick={onClose}
                             className={`absolute top-4 right-4 z-10 w-8 h-8 rounded-full ${theme === 'dark' ? 'bg-white/10' : 'bg-black/10'} flex items-center justify-center hover:scale-110 transition-transform`}
                         >
-                            <X size={18} className={theme === 'dark' ? 'text-white' : 'text-black'} />
+                            <X size={18} className={styles.textTitle} />
                         </button>
 
                         {/* Scrollable Content */}
@@ -241,7 +264,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                                 >
                                     {/* Nutrition Card */}
                                     <motion.div
-                                        className={`absolute ${theme === 'dark' ? 'bg-[#2C2C2E] border-gray-600' : 'bg-[#F5F0E8] border-gray-300'} rounded-2xl p-4 cursor-pointer border`}
+                                        className={`absolute ${styles.bgCard} ${styles.border} rounded-2xl p-4 cursor-pointer border`}
                                         style={{
                                             width: 160,
                                             height: 180,
@@ -258,25 +281,25 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                                         transition={{ type: 'spring', stiffness: 300, damping: 25 }}
                                         onClick={() => setShowNutritionCard(true)}
                                     >
-                                        <div className={`text-xs font-bold ${textColor} mb-1 border-b ${theme === 'dark' ? 'border-gray-600' : 'border-gray-300'} pb-1`}>
+                                        <div className={`text-xs font-bold ${styles.textTitle} mb-1 border-b ${styles.border} pb-1`}>
                                             {lang === Language.ZH ? '胃之书营养卡片' : 'Bellybook Nutrition'}
                                         </div>
                                         <div className="space-y-2 mt-3">
                                             <div className="flex justify-between items-center">
-                                                <span className={`text-sm ${secondaryText}`}>{lang === Language.ZH ? '卡路里' : 'Calories'}</span>
-                                                <span className={`text-xl font-bold ${textColor}`}>{Math.round(totalCalories)}</span>
+                                                <span className={`text-sm ${styles.textSecondary}`}>{lang === Language.ZH ? '卡路里' : 'Calories'}</span>
+                                                <span className={`text-xl font-bold ${styles.textTitle}`}>{Math.round(totalCalories)}</span>
                                             </div>
                                             <div className="flex justify-between items-center">
-                                                <span className={`text-xs ${secondaryText}`}>{lang === Language.ZH ? '蛋白质' : 'Protein'}</span>
-                                                <span className={`text-sm font-medium ${textColor}`}>{Math.round(localMeal.analysis.nutrition?.protein || 0)}g</span>
+                                                <span className={`text-xs ${styles.textSecondary}`}>{lang === Language.ZH ? '蛋白质' : 'Protein'}</span>
+                                                <span className={`text-sm font-medium ${styles.textTitle}`}>{Math.round(localMeal.analysis.nutrition?.protein || 0)}g</span>
                                             </div>
                                             <div className="flex justify-between items-center">
-                                                <span className={`text-xs ${secondaryText}`}>{lang === Language.ZH ? '脂肪' : 'Fat'}</span>
-                                                <span className={`text-sm font-medium ${textColor}`}>{(localMeal.analysis.nutrition?.fat || 0).toFixed(1)}g</span>
+                                                <span className={`text-xs ${styles.textSecondary}`}>{lang === Language.ZH ? '脂肪' : 'Fat'}</span>
+                                                <span className={`text-sm font-medium ${styles.textTitle}`}>{(localMeal.analysis.nutrition?.fat || 0).toFixed(1)}g</span>
                                             </div>
                                             <div className="flex justify-between items-center">
-                                                <span className={`text-xs ${secondaryText}`}>{lang === Language.ZH ? '碳水' : 'Carbs'}</span>
-                                                <span className={`text-sm font-medium ${textColor}`}>{Math.round(localMeal.analysis.nutrition?.carbohydrates || 0)}g</span>
+                                                <span className={`text-xs ${styles.textSecondary}`}>{lang === Language.ZH ? '碳水' : 'Carbs'}</span>
+                                                <span className={`text-sm font-medium ${styles.textTitle}`}>{Math.round(localMeal.analysis.nutrition?.carbohydrates || 0)}g</span>
                                             </div>
                                         </div>
                                     </motion.div>
@@ -302,7 +325,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                                     >
                                         <img
                                             src={localMeal.thumbnailUrl || localMeal.imageUrl}
-                                            alt={localMeal.analysis.foodName}
+                                            alt={getDishNames(localMeal)}
                                             className="w-full h-full object-cover"
                                         />
                                     </motion.div>
@@ -313,26 +336,26 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                             <div className="px-6 space-y-3">
                                 {/* Food Name - Not Editable */}
                                 <div className="flex items-center gap-2">
-                                    <h2 className={`text-2xl font-bold ${textColor}`}>
-                                        {translateDishName(localMeal.analysis.foodName || '', lang)}
+                                    <h2 className={`text-2xl font-bold ${styles.textTitle}`}>
+                                        {translateDishName(getDishNames(localMeal) || '', lang)}
                                     </h2>
                                 </div>
 
-                                <div className={`text-lg font-semibold ${textColor}`}>{dayOfWeek}</div>
+                                <div className={`text-lg font-semibold ${styles.textTitle}`}>{dayOfWeek}</div>
 
                                 <div className="flex justify-between items-center">
-                                    <span className={secondaryText}>{dateStr}</span>
-                                    <span className={textColor}>{timeStr}</span>
+                                    <span className={styles.textSecondary}>{dateStr}</span>
+                                    <span className={styles.textTitle}>{timeStr}</span>
                                 </div>
 
                                 <div className="flex justify-between items-center">
-                                    <span className={secondaryText}>{lang === Language.ZH ? 'AI估值' : 'AI Estimate'}</span>
-                                    <span className={textColor}>{estimatedPrice} ¥</span>
+                                    <span className={styles.textSecondary}>{lang === Language.ZH ? 'AI估值' : 'AI Estimate'}</span>
+                                    <span className={styles.textTitle}>{estimatedPrice} ¥</span>
                                 </div>
 
                                 <div className="flex justify-between items-center">
-                                    <span className={secondaryText}>{lang === Language.ZH ? '总热量' : 'Total Calories'}</span>
-                                    <span className={textColor}>{Math.round(totalCalories)} kcal</span>
+                                    <span className={styles.textSecondary}>{lang === Language.ZH ? '总热量' : 'Total Calories'}</span>
+                                    <span className={styles.textTitle}>{Math.round(totalCalories)} kcal</span>
                                 </div>
                             </div>
 
@@ -346,7 +369,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                                             value={editFoodNamePoetic}
                                             onChange={(e) => setEditFoodNamePoetic(e.target.value)}
                                             placeholder={lang === Language.ZH ? '暮光中的...私语' : 'Whispers of...'}
-                                            className={`w-full text-base font-semibold mb-3 ${textColor} ${inputBg} px-3 py-2 rounded-lg border-2 focus:border-orange-500 focus:outline-none`}
+                                            className={`w-full text-base font-semibold mb-3 ${styles.textTitle} ${inputBg} px-3 py-2 rounded-lg border-2 focus:border-orange-500 focus:outline-none`}
                                         />
                                         {/* Editable Description */}
                                         <textarea
@@ -354,21 +377,21 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                                             onChange={(e) => setEditPoeticDescription(e.target.value)}
                                             placeholder={lang === Language.ZH ? '诗意描述...' : 'Poetic description...'}
                                             rows={4}
-                                            className={`w-full text-sm leading-relaxed ${secondaryText} ${inputBg} px-3 py-2 rounded-lg border-2 focus:border-orange-500 focus:outline-none resize-none`}
+                                            className={`w-full text-sm leading-relaxed ${styles.textSecondary} ${inputBg} px-3 py-2 rounded-lg border-2 focus:border-orange-500 focus:outline-none resize-none`}
                                         />
                                     </>
                                 ) : (
                                     <>
                                         {/* Display Title */}
-                                        <h3 className={`text-base font-semibold mb-3 ${textColor}`}>
+                                        <h3 className={`text-base font-semibold mb-3 ${styles.textTitle}`}>
                                             {localMeal.analysis.foodNamePoetic || (
                                               lang === Language.ZH
-                                                ? `暮光中的${(localMeal.analysis.dishes?.[0]?.foodName || localMeal.analysis.foodName || '菜品')}私语`
-                                                : `Whispers of ${localMeal.analysis.dishes?.[0]?.foodName || localMeal.analysis.foodName || 'Dish'}`
+                                                ? `暮光中的${getDishNames(localMeal) || '菜品'}私语`
+                                                : `Whispers of ${getDishNames(localMeal) || 'Dish'}`
                                             )}
                                         </h3>
                                         {/* Display Description */}
-                                        <p className={`text-sm leading-relaxed ${secondaryText}`}>
+                                        <p className={`text-sm leading-relaxed ${styles.textSecondary}`}>
                                             {poeticDescription}
                                         </p>
                                     </>
@@ -410,18 +433,18 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                                             }}
                                         >
                                             <div className="flex items-center gap-2 mb-2">
-                                                <span className={`font-bold ${theme === 'dark' ? 'text-gray-100' : 'text-gray-800'}`}>
+                                                <span className={`font-bold ${styles.textTitle}`}>
                                                     {translateIngredient(ing.name, lang)}
                                                 </span>
                                                 <span className="text-lg">{getIngredientIcon(ing.name)}</span>
                                                 <span className={`ml-auto text-xs px-2 py-0.5 rounded ${theme === 'dark' ? 'bg-black/20 text-gray-300' : 'bg-black/10 text-gray-700'}`}>
                                                     {translateCuisine(localMeal.analysis.cuisine || (lang === Language.ZH ? '中国' : 'Chinese'), lang)}
                                                 </span>
-                                                <span className={`text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                                                <span className={`text-sm ${styles.textSecondary}`}>
                                                     {ing.percentage || 1} {lang === Language.ZH ? '份' : 'portion'}
                                                 </span>
                                             </div>
-                                            <p className={`text-xs leading-relaxed ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                                            <p className={`text-xs leading-relaxed ${styles.textSecondary}`}>
                                                 {ing.description || translateDescription(`${ing.name}是中国家常烹饪中常见的食材，营养丰富，风味独特。`, lang)}
                                             </p>
                                         </motion.div>
@@ -431,10 +454,10 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
 
                             {/* Nutrition Analysis Section */}
                             <div className="px-6 py-6">
-                                <h3 className={`text-base font-semibold mb-3 ${textColor}`}>
+                                <h3 className={`text-base font-semibold mb-3 ${styles.textTitle}`}>
                                     {lang === Language.ZH ? '本餐营养学分析' : 'Meal Nutrition Analysis'}
                                 </h3>
-                                <p className={`text-sm leading-relaxed ${secondaryText}`}>
+                                <p className={`text-sm leading-relaxed ${styles.textSecondary}`}>
                                     {nutritionCommentary || (lang === Language.ZH ? '暂无营养分析数据' : 'No nutrition analysis available')}
                                 </p>
                             </div>
@@ -442,10 +465,10 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                             {/* Historical Background Section */}
                             {localMeal.analysis.historicalOrigins && (
                                 <div className="px-6 py-6">
-                                    <h3 className={`text-base font-semibold mb-3 ${textColor}`}>
+                                    <h3 className={`text-base font-semibold mb-3 ${styles.textTitle}`}>
                                         {t.history_source || (lang === Language.ZH ? '历史渊源' : 'History & Origin')}
                                     </h3>
-                                    <p className={`text-sm leading-relaxed ${secondaryText}`}>
+                                    <p className={`text-sm leading-relaxed ${styles.textSecondary}`}>
                                         {localMeal.analysis.historicalOrigins}
                                     </p>
                                 </div>
@@ -453,7 +476,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                         </div>
 
                         {/* Bottom Action Buttons */}
-                        <div className={`absolute bottom-0 left-0 right-0 ${bgColor} border-t ${theme === 'dark' ? 'border-gray-700' : 'border-gray-200'} px-6 py-4 flex items-center justify-center gap-4`}>
+                        <div className={`absolute bottom-0 left-0 right-0 ${styles.bgCard} border-t ${styles.border} px-6 py-4 flex items-center justify-center gap-4`}>
                             {isEditing ? (
                                 <>
                                     {/* Cancel Edit Button */}
@@ -461,7 +484,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                                         whileTap={{ scale: 0.95 }}
                                         onClick={handleCancelEdit}
                                         disabled={isSaving}
-                                        className={`flex items-center justify-center px-6 py-2.5 rounded-full border ${theme === 'dark' ? 'border-gray-600 text-white' : 'border-gray-300 text-gray-800'} disabled:opacity-50`}
+                                        className={`flex items-center justify-center px-6 py-2.5 rounded-full border ${theme === 'dark' ? 'border-[var(--border)] text-white' : 'border-[var(--border)] text-gray-800'} disabled:opacity-50`}
                                     >
                                         <X size={16} className="mr-2" />
                                         <span className="text-sm font-medium">{lang === Language.ZH ? '取消' : 'Cancel'}</span>
@@ -493,7 +516,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                                     <motion.button
                                         whileTap={{ scale: 0.95 }}
                                         onClick={() => onShare?.(localMeal)}
-                                        className={`flex items-center justify-center px-6 py-2.5 rounded-full border ${theme === 'dark' ? 'border-gray-600 text-white' : 'border-gray-300 text-gray-800'}`}
+                                        className={`flex items-center justify-center px-6 py-2.5 rounded-full border ${theme === 'dark' ? 'border-[var(--border)] text-white' : 'border-[var(--border)] text-gray-800'}`}
                                     >
                                         <Share2 size={16} className="mr-2" />
                                         <span className="text-sm font-medium">{lang === Language.ZH ? '分享' : 'Share'}</span>
@@ -504,7 +527,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                                         <motion.button
                                             whileTap={{ scale: 0.95 }}
                                             onClick={handleStartEdit}
-                                            className={`flex items-center justify-center px-6 py-2.5 rounded-full border ${theme === 'dark' ? 'border-gray-600 text-white' : 'border-gray-300 text-gray-800'}`}
+                                            className={`flex items-center justify-center px-6 py-2.5 rounded-full border ${theme === 'dark' ? 'border-[var(--border)] text-white' : 'border-[var(--border)] text-gray-800'}`}
                                         >
                                             <Edit3 size={16} className="mr-2" />
                                             <span className="text-sm font-medium">{lang === Language.ZH ? '编辑本餐' : 'Edit'}</span>
@@ -524,7 +547,7 @@ export const MealDetailModal: React.FC<MealDetailModalProps> = ({
                                                 {lang === Language.ZH ? '确认删除?' : 'Confirm?'}
                                             </span>
                                         ) : (
-                                            <Trash2 size={20} className={theme === 'dark' ? 'text-white' : 'text-gray-800'} />
+                                            <Trash2 size={20} className={styles.textTitle} />
                                         )}
                                     </motion.button>
                                 </>

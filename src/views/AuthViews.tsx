@@ -9,6 +9,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, Loader2, Eye, EyeOff, LogOut, User, Lock, Mail } from 'lucide-react';
+import { useThemeStyles } from '../hooks/useThemeStyles';
 import { Language, Theme } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -258,6 +259,7 @@ function NeumorphicInput({
 // ============================================================================
 
 export function LoginView({ language, theme, onBack, onRegisterClick, onLoginSuccess }: LoginViewProps) {
+  const styles = useThemeStyles(theme);
   const { login, migrateOfflineData } = useAuth();
 
   const [username, setUsername] = useState('');
@@ -298,7 +300,7 @@ export function LoginView({ language, theme, onBack, onRegisterClick, onLoginSuc
   const bgColor = 'var(--background)';
   const textColor = 'var(--foreground)';
   const secondaryColor = 'var(--muted-foreground)';
-  const backBtnBg = theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+  const backBtnBg = theme === 'dark' ? styles.bgCard + '/40' : 'bg-black/5';
   const primaryColor = 'var(--primary)';
 
   return (
@@ -443,6 +445,7 @@ export function LoginView({ language, theme, onBack, onRegisterClick, onLoginSuc
 // ============================================================================
 
 export function RegisterView({ language, theme, onBack, onLoginClick, onRegisterSuccess }: RegisterViewProps) {
+  const styles = useThemeStyles(theme);
   const { register } = useAuth();
 
   const [username, setUsername] = useState('');
@@ -509,7 +512,7 @@ export function RegisterView({ language, theme, onBack, onLoginClick, onRegister
   const bgColor = 'var(--background)';
   const textColor = 'var(--foreground)';
   const secondaryColor = 'var(--muted-foreground)';
-  const backBtnBg = theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)';
+  const backBtnBg = theme === 'dark' ? styles.bgCard + '/40' : 'bg-black/5';
   const primaryColor = 'var(--primary)';
 
   return (

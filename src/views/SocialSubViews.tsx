@@ -1,12 +1,14 @@
 import React, { useState, useMemo } from 'react';
 import { NavBar } from '../components/UIComponents';
 import { Language, TEXT, Theme } from '../types';
-import { ChevronLeft, Share2, UtensilsCrossed, ChevronRight, ArrowLeft } from 'lucide-react';
+import { ChevronLeft, Share2, UtensilsCrossed, ChevronRight, ArrowLeft, Sun, CloudSun, Moon, Coffee } from 'lucide-react';
 import { useMeals } from '@/hooks/useMeals';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDailyNutrition } from '@/hooks/useDailyNutrition';
 import { Card } from '@/components/ui/card';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { UserAvatar } from '@/components/shared/UserAvatar';
 
 interface LeaderboardProps {
   title: string;
@@ -91,15 +93,12 @@ export const CuisineDetailPage: React.FC<CuisineDetailPageProps> = ({
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
               <div className="flex items-center space-x-3 mb-2">
-                <div className={cn(
-                  "w-12 h-12 rounded-full flex items-center justify-center text-white text-lg font-bold flex-shrink-0"
-                )}
-                style={{
-                  background: 'linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, black) 100%)',
-                  boxShadow: '0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)'
-                }}>
-                  {displayName?.charAt(0)?.toUpperCase() || '?'}
-                </div>
+                <UserAvatar
+                  src={null}
+                  username={displayName}
+                  size="md"
+                  className="flex-shrink-0"
+                />
                 <div>
                   <div className="text-xs font-bold tracking-widest uppercase text-white/80">{cuisine}</div>
                   <h1 className="text-xl font-bold text-white truncate">{displayName}</h1>
@@ -334,15 +333,12 @@ export const LeaderboardPage: React.FC<LeaderboardProps> = ({ title, type, lang,
                     )}>
                       {getBadge()}
                     </div>
-                    <div className={cn(
-                      "w-12 h-12 rounded-full flex items-center justify-center mr-4 text-white text-lg font-bold"
-                    )}
-                    style={{
-                      background: 'linear-gradient(135deg, var(--accent) 0%, color-mix(in srgb, var(--accent) 85%, black) 100%)',
-                      boxShadow: '0 4px 12px color-mix(in srgb, var(--accent) 30%, transparent), inset 0 1px 0 rgba(255,255,255,0.2), inset 0 -1px 0 rgba(0,0,0,0.1)'
-                    }}>
-                      {displayName?.charAt(0)?.toUpperCase() || '?'}
-                    </div>
+                    <UserAvatar
+                      src={null}
+                      username={displayName}
+                      size="md"
+                      className="mr-4"
+                    />
                     <div className="flex-1">
                       <div className={cn("text-foreground font-semibold")}>{displayName}</div>
                       <div className={cn(
@@ -379,6 +375,65 @@ export const UserDetailPage: React.FC<{
 }> = ({ user, lang, theme, onBack }) => {
   const t = TEXT[lang];
 
+  // Fetch today's daily nutrition data from backend API
+  const { data: dailyNutrition, isLoading: nutritionLoading } = useDailyNutrition();
+
+  // Meal time icons
+  const MEAL_TIME_ICONS = {
+    breakfast: <Sun size={20} />,
+    lunch: <CloudSun size={20} />,
+    dinner: <Moon size={20} />,
+    snack: <Coffee size={20} />,
+  };
+
+  // Meal time labels
+  const MEAL_TIME_LABELS = {
+    breakfast: lang === Language.ZH ? '早餐' : 'Breakfast',
+    lunch: lang === Language.ZH ? '午餐' : 'Lunch',
+    dinner: lang === Language.ZH ? '晚餐' : 'Dinner',
+    snack: lang === Language.ZH ? '加餐' : 'Snack',
+  };
+
+  // Meal time colors
+  const MEAL_TIME_COLORS = {
+    breakfast: 'bg-orange-100 text-orange-600',
+    lunch: 'bg-yellow-100 text-yellow-600',
+    dinner: 'bg-indigo-100 text-indigo-600',
+    snack: 'bg-pink-100 text-pink-600',
+  };
+
+  // Meal time data
+  const mealTimeData = useMemo(() => [
+    {
+      key: 'breakfast',
+      label: MEAL_TIME_LABELS.breakfast,
+      icon: MEAL_TIME_ICONS.breakfast,
+      color: MEAL_TIME_COLORS.breakfast,
+      count: dailyNutrition?.breakfastCount ?? 0,
+    },
+    {
+      key: 'lunch',
+      label: MEAL_TIME_LABELS.lunch,
+      icon: MEAL_TIME_ICONS.lunch,
+      color: MEAL_TIME_COLORS.lunch,
+      count: dailyNutrition?.lunchCount ?? 0,
+    },
+    {
+      key: 'dinner',
+      label: MEAL_TIME_LABELS.dinner,
+      icon: MEAL_TIME_ICONS.dinner,
+      color: MEAL_TIME_COLORS.dinner,
+      count: dailyNutrition?.dinnerCount ?? 0,
+    },
+    {
+      key: 'snack',
+      label: MEAL_TIME_LABELS.snack,
+      icon: MEAL_TIME_ICONS.snack,
+      color: MEAL_TIME_COLORS.snack,
+      count: dailyNutrition?.snackCount ?? 0,
+    },
+  ], [dailyNutrition, lang]);
+
   return (
     <div className={cn("min-h-screen bg-background animate-slide-left pb-safe-bottom")}>
       <NavBar
@@ -414,17 +469,63 @@ export const UserDetailPage: React.FC<{
       {/* Stats */}
       <div className="flex justify-around px-8 mb-8">
         <div className="text-center">
-          <div className={cn("text-xl font-bold text-foreground")}>142</div>
+          <div className={cn("text-xl font-bold text-foreground")}>{dailyNutrition?.mealCount ?? 0}</div>
           <div className={cn("text-xs text-muted-foreground")}>{t.dishes_count}</div>
         </div>
         <div className="text-center">
-          <div className={cn("text-xl font-bold text-foreground")}>12</div>
-          <div className={cn("text-xs text-muted-foreground")}>{t.cuisine_count}</div>
+          <div className={cn("text-xl font-bold text-foreground")}>{dailyNutrition?.totalCalories ?? 0}</div>
+          <div className={cn("text-xs text-muted-foreground")}>{lang === Language.ZH ? '卡路里' : 'Calories'}</div>
         </div>
         <div className="text-center">
           <div className={cn("text-xl font-bold text-foreground")}>5.8k</div>
           <div className={cn("text-xs text-muted-foreground")}>{t.likes}</div>
         </div>
+      </div>
+
+      {/* Meal Time Stats Card */}
+      <div className="px-4 mb-6">
+        <Card className="rounded-2xl p-4" variant="raised">
+          <h3 className={cn("font-bold text-foreground mb-4 px-2")}>
+            {lang === Language.ZH ? '今日餐食' : 'Today\'s Meals'}
+          </h3>
+          {nutritionLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {mealTimeData.map((meal, index) => (
+                <motion.div
+                  key={meal.key}
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 25, delay: index * 0.05 }}
+                >
+                  <div className={cn(
+                    "rounded-xl p-3 border transition-all",
+                    "hover:scale-[1.02] active:scale-[0.98]",
+                    theme === 'dark' ? "bg-[#2C2C2E] border-white/10" : "bg-gray-50 border-[var(--border)]"
+                  )}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={cn("p-1.5 rounded-lg", meal.color)}>
+                        {meal.icon}
+                      </div>
+                      <span className={cn("text-sm font-medium text-foreground")}>
+                        {meal.label}
+                      </span>
+                    </div>
+                    <div className={cn("text-2xl font-bold text-foreground")}>
+                      {meal.count}
+                    </div>
+                    <div className={cn("text-xs text-muted-foreground")}>
+                      {lang === Language.ZH ? '餐' : 'meals'}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </Card>
       </div>
 
       {/* Gallery / Content */}

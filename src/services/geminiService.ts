@@ -1,12 +1,15 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Language } from "../types";
+import { createModuleLogger } from '@/utils/logger';
+
+const logger = createModuleLogger('GeminiService');
 
 // In Vite, environment variables must be prefixed with VITE_ to be accessible in the browser
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY || '';
 
 export const analyzeFoodImage = async (base64Image: string, lang: Language): Promise<any> => {
   if (!apiKey) {
-    console.error("API Key is missing");
+    logger.error("API Key is missing");
     throw new Error("API Key is missing. Please set GEMINI_API_KEY in .env file.");
   }
 
@@ -259,7 +262,7 @@ export const analyzeFoodImage = async (base64Image: string, lang: Language): Pro
     return result;
 
   } catch (error) {
-    console.error("Gemini Analysis Error:", error);
+    logger.error("Gemini Analysis Error:", error);
     // Return mock data if API fails
     return {
       foodName: lang === Language.ZH ? "宫保鸡丁" : "Kung Pao Chicken",
@@ -327,7 +330,7 @@ export const generateDishHistory = async (dishName: string, lang: Language): Pro
     const text = response.text;
     return text || (lang === Language.ZH ? "暂无历史渊源信息。" : "No historical information available.");
   } catch (error) {
-    console.error("Gemini History Generation Error:", error);
+    logger.error("Gemini History Generation Error:", error);
     return lang === Language.ZH
       ? "AI服务暂时不可用，无法获取历史渊源。"
       : "AI service temporarily unavailable.";

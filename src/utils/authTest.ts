@@ -4,6 +4,7 @@
  */
 
 import * as authApi from '@/api/auth';
+import { logger } from '@/utils/logger';
 
 // ============================================================================
 // Test Configuration
@@ -144,12 +145,12 @@ export async function testCompleteAuthFlow() {
   };
 
   // Test 1: Register
-  console.log('📝 Testing registration...');
+  logger.info('Testing registration...');
   results.register = await testRegister();
-  console.log(
+  logger.info(
     results.register.success
-      ? '✅ Registration successful'
-      : `❌ Registration failed: ${results.register.error}`
+      ? 'Registration successful'
+      : `Registration failed: ${results.register.error}`
   );
 
   if (!results.register.success) {
@@ -157,33 +158,33 @@ export async function testCompleteAuthFlow() {
   }
 
   // Test 2: Login with same credentials
-  console.log('🔐 Testing login...');
+  logger.info('Testing login...');
   results.login = await testLogin(
     results.register.testData.username,
     results.register.testData.password
   );
-  console.log(
+  logger.info(
     results.login.success
-      ? '✅ Login successful'
-      : `❌ Login failed: ${results.login.error}`
+      ? 'Login successful'
+      : `Login failed: ${results.login.error}`
   );
 
   // Test 3: Get current user
-  console.log('👤 Testing get current user...');
+  logger.info('Testing get current user...');
   results.getCurrentUser = await testGetCurrentUser();
-  console.log(
+  logger.info(
     results.getCurrentUser.success
-      ? `✅ Get current user successful: ${results.getCurrentUser.user.username}`
-      : `❌ Get current user failed: ${results.getCurrentUser.error}`
+      ? `Get current user successful: ${results.getCurrentUser.user.username}`
+      : `Get current user failed: ${results.getCurrentUser.error}`
   );
 
   // Test 4: Logout
-  console.log('🚪 Testing logout...');
+  logger.info('Testing logout...');
   results.logout = await testLogout();
-  console.log(
+  logger.info(
     results.logout.success
-      ? '✅ Logout successful'
-      : `❌ Logout failed: ${results.logout.error}`
+      ? 'Logout successful'
+      : `Logout failed: ${results.logout.error}`
   );
 
   return results;
@@ -200,7 +201,7 @@ export async function testErrorScenarios() {
   };
 
   // Test 1: Duplicate username
-  console.log('📝 Testing duplicate username...');
+  logger.info('Testing duplicate username...');
   const testData = generateTestData();
   await authApi.register(testData); // Register first user
 
@@ -210,28 +211,28 @@ export async function testErrorScenarios() {
   } catch (error) {
     results.duplicateUser = { success: true, error };
   }
-  console.log(
+  logger.info(
     results.duplicateUser.success
-      ? '✅ Duplicate username error handled correctly'
-      : `❌ Duplicate username test failed`
+      ? 'Duplicate username error handled correctly'
+      : `Duplicate username test failed`
   );
 
   // Test 2: Invalid credentials
-  console.log('🔐 Testing invalid credentials...');
+  logger.info('Testing invalid credentials...');
   try {
     await authApi.login({ username: 'nonexistentuser', password: 'wrongpassword' });
     results.invalidCredentials = { success: false, error: 'Expected error but got success' };
   } catch (error) {
     results.invalidCredentials = { success: true, error };
   }
-  console.log(
+  logger.info(
     results.invalidCredentials.success
-      ? '✅ Invalid credentials error handled correctly'
-      : `❌ Invalid credentials test failed`
+      ? 'Invalid credentials error handled correctly'
+      : `Invalid credentials test failed`
   );
 
   // Test 3: Short password (will be caught by client validation)
-  console.log('🔏 Testing short password...');
+  logger.info('Testing short password...');
   try {
     await authApi.register({
       username: generateTestUsername(),
@@ -241,10 +242,10 @@ export async function testErrorScenarios() {
   } catch (error) {
     results.shortPassword = { success: true, error };
   }
-  console.log(
+  logger.info(
     results.shortPassword.success
-      ? '✅ Short password error handled correctly'
-      : `❌ Short password test failed`
+      ? 'Short password error handled correctly'
+      : `Short password test failed`
   );
 
   return results;
@@ -254,27 +255,27 @@ export async function testErrorScenarios() {
  * Run all tests
  */
 export async function runAllTests() {
-  console.log('🧪 Starting Authentication Tests...\n');
-  console.log('=' .repeat(60));
+  logger.info('Starting Authentication Tests...\n');
+  logger.info('=' .repeat(60));
 
-  console.log('\n📋 Testing Complete Auth Flow:\n');
-  console.log('-'.repeat(60));
+  logger.info('\nTesting Complete Auth Flow:\n');
+  logger.info('-'.repeat(60));
   const flowResults = await testCompleteAuthFlow();
 
-  console.log('\n📋 Testing Error Scenarios:\n');
-  console.log('-'.repeat(60));
+  logger.info('\nTesting Error Scenarios:\n');
+  logger.info('-'.repeat(60));
   const errorResults = await testErrorScenarios();
 
-  console.log('\n' + '='.repeat(60));
-  console.log('🧪 Tests Complete!\n');
+  logger.info('\n' + '='.repeat(60));
+  logger.info('Tests Complete!\n');
 
   // Summary
   const flowSuccess = Object.values(flowResults).every((r) => r?.success);
   const errorSuccess = Object.values(errorResults).every((r) => r?.success);
 
-  console.log('📊 Summary:');
-  console.log(`  Auth Flow: ${flowSuccess ? '✅ PASS' : '❌ FAIL'}`);
-  console.log(`  Error Handling: ${errorSuccess ? '✅ PASS' : '❌ FAIL'}`);
+  logger.info('Summary:');
+  logger.info(`  Auth Flow: ${flowSuccess ? 'PASS' : 'FAIL'}`);
+  logger.info(`  Error Handling: ${errorSuccess ? 'PASS' : 'FAIL'}`);
 
   return {
     flowResults,
@@ -299,6 +300,6 @@ if (typeof window !== 'undefined') {
     testErrorScenarios,
     runAllTests,
   };
-  console.log('🧪 Auth test utilities available at window.authTest');
-  console.log('   Run tests with: authTest.runAllTests()');
+  logger.info('Auth test utilities available at window.authTest');
+  logger.info('   Run tests with: authTest.runAllTests()');
 }

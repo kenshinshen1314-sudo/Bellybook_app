@@ -8,17 +8,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AlertTriangle, X, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 import { useConflicts } from '@/hooks/useConflicts';
+import { useThemeStyles } from '@/hooks/useThemeStyles';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import type { Language } from '@/db/schema';
+import { Theme, type Language } from '@/types';
 
 interface ConflictBannerProps {
   language: Language;
-  theme: 'light' | 'dark';
+  theme: Theme;
   onResolveClick?: () => void;
 }
 
 export function ConflictBanner({ language, theme, onResolveClick }: ConflictBannerProps) {
+  const styles = useThemeStyles(theme);
   const { stats, pendingConflicts } = useConflicts();
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -105,7 +107,7 @@ export function ConflictBanner({ language, theme, onResolveClick }: ConflictBann
                 {pendingConflicts.slice(0, 3).map((conflict) => (
                   <div
                     key={conflict.id}
-                    className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-black/20' : 'bg-white'} border ${theme === 'dark' ? 'border-white/10' : 'border-gray-200'}`}
+                    className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-black/20' : 'bg-white'} border ${styles.border}`}
                   >
                     <div className="flex items-center justify-between mb-1">
                       <span className={`text-xs font-medium ${textColor}`}>

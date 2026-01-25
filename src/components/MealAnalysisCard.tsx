@@ -2,7 +2,8 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Card } from './ui/card';
 import { Flame, Utensils, Wheat, Droplet } from 'lucide-react';
-import { Language } from '@/types';
+import { useThemeStyles } from '@/hooks/useThemeStyles';
+import { Language, Theme } from '@/types';
 import { type MealAnalysis } from '@/db';
 import { translateDishName, translateCuisine } from '@/utils/translationUtils';
 
@@ -10,7 +11,7 @@ interface MealAnalysisCardProps {
   imageUrl: string;
   analysis: MealAnalysis;
   language: Language;
-  theme: 'light' | 'dark';
+  theme: Theme;
 }
 
 /**
@@ -18,6 +19,7 @@ interface MealAnalysisCardProps {
  * Shows food image, nutrition info, and description
  */
 export function MealAnalysisCard({ imageUrl, analysis, language, theme }: MealAnalysisCardProps) {
+  const styles = useThemeStyles(theme);
   const nutrition = analysis.nutrition || { calories: 0, protein: 0, fat: 0, carbohydrates: 0 };
   const foodName = translateDishName(
     analysis.foodName || (language === 'zh' ? '未知食物' : 'Unknown Food'),
@@ -27,14 +29,8 @@ export function MealAnalysisCard({ imageUrl, analysis, language, theme }: MealAn
   const description = analysis.description;
   const suggestions = analysis.suggestions || [];
 
-  const cardBg = theme === 'dark' ? 'bg-[#1C1C1E]' : 'bg-white';
-  const textPrimary = theme === 'dark' ? 'text-white' : 'text-gray-900';
-  const textSecondary = theme === 'dark' ? 'text-gray-400' : 'text-gray-600';
-  const textTertiary = theme === 'dark' ? 'text-gray-500' : 'text-gray-500';
-  const dividerColor = theme === 'dark' ? 'border-white/10' : 'border-gray-100';
-
   return (
-    <Card className={`${cardBg} overflow-hidden`}>
+    <Card className={`${styles.bgCard} overflow-hidden`}>
       {/* Food Image */}
       <div className="relative w-full aspect-[4/3] overflow-hidden">
         <img
@@ -56,22 +52,22 @@ export function MealAnalysisCard({ imageUrl, analysis, language, theme }: MealAn
       <div className="p-4 space-y-4">
         {/* Food Name */}
         <div>
-          <h3 className={`text-xl font-bold ${textPrimary}`}>
+          <h3 className={`text-xl font-bold ${styles.textTitle}`}>
             {foodName}
           </h3>
           {description && (
-            <p className={`text-sm mt-1 ${textSecondary} leading-relaxed`}>
+            <p className={`text-sm mt-1 ${styles.textSecondary} leading-relaxed`}>
               {description}
             </p>
           )}
         </div>
 
         {/* Divider */}
-        <div className={`h-px ${dividerColor}`} />
+        <div className={`h-px ${styles.border}`} />
 
         {/* Nutrition Grid */}
         <div>
-          <h4 className={`text-sm font-semibold mb-3 ${textPrimary}`}>
+          <h4 className={`text-sm font-semibold mb-3 ${styles.textTitle}`}>
             {language === 'zh' ? '营养成分' : 'Nutrition Facts'}
           </h4>
           <div className="grid grid-cols-4 gap-3">
@@ -81,8 +77,8 @@ export function MealAnalysisCard({ imageUrl, analysis, language, theme }: MealAn
               value={nutrition.calories}
               unit="kcal"
               label={language === 'zh' ? '热量' : 'Calories'}
-              textPrimary={textPrimary}
-              textSecondary={textSecondary}
+              textPrimary={styles.textTitle}
+              textSecondary={styles.textSecondary}
             />
             {/* Protein */}
             <NutritionItem
@@ -90,8 +86,8 @@ export function MealAnalysisCard({ imageUrl, analysis, language, theme }: MealAn
               value={nutrition.protein}
               unit="g"
               label={language === 'zh' ? '蛋白质' : 'Protein'}
-              textPrimary={textPrimary}
-              textSecondary={textSecondary}
+              textPrimary={styles.textTitle}
+              textSecondary={styles.textSecondary}
             />
             {/* Fat */}
             <NutritionItem
@@ -99,8 +95,8 @@ export function MealAnalysisCard({ imageUrl, analysis, language, theme }: MealAn
               value={nutrition.fat}
               unit="g"
               label={language === 'zh' ? '脂肪' : 'Fat'}
-              textPrimary={textPrimary}
-              textSecondary={textSecondary}
+              textPrimary={styles.textTitle}
+              textSecondary={styles.textSecondary}
             />
             {/* Carbs */}
             <NutritionItem
@@ -108,8 +104,8 @@ export function MealAnalysisCard({ imageUrl, analysis, language, theme }: MealAn
               value={nutrition.carbohydrates}
               unit="g"
               label={language === 'zh' ? '碳水' : 'Carbs'}
-              textPrimary={textPrimary}
-              textSecondary={textSecondary}
+              textPrimary={styles.textTitle}
+              textSecondary={styles.textSecondary}
             />
           </div>
         </div>
@@ -117,14 +113,14 @@ export function MealAnalysisCard({ imageUrl, analysis, language, theme }: MealAn
         {/* Suggestions */}
         {suggestions.length > 0 && (
           <>
-            <div className={`h-px ${dividerColor}`} />
+            <div className={`h-px ${styles.border}`} />
             <div>
-              <h4 className={`text-sm font-semibold mb-2 ${textPrimary}`}>
+              <h4 className={`text-sm font-semibold mb-2 ${styles.textTitle}`}>
                 {language === 'zh' ? '建议' : 'Suggestions'}
               </h4>
               <ul className="space-y-1">
                 {suggestions.map((suggestion, index) => (
-                  <li key={index} className={`text-xs ${textTertiary} flex items-start`}>
+                  <li key={index} className={`text-xs ${styles.textTertiary} flex items-start`}>
                     <span className="mr-2">•</span>
                     <span>{suggestion}</span>
                   </li>
